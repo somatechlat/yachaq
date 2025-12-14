@@ -64,6 +64,11 @@ yachaq:
     secret: ${JWT_SECRET:your-256-bit-secret-key-here-minimum-32-chars}
     access-token-validity: 900      # 15 minutes
     refresh-token-validity: 604800  # 7 days
+  
+  screening:
+    policy-version: "1.0.0"
+    min-cohort-size: 50             # k-anonymity threshold (Property 11)
+    manual-review-threshold: 0.5    # Risk score threshold for manual review
 
 spring.security.oauth2.client:
   registration:

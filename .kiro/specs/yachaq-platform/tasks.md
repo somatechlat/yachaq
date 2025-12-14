@@ -76,7 +76,7 @@
     - **Property 8: Merkle Tree Validity**
     - **Validates: Requirements 126.3**
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Request and Screening Engine
