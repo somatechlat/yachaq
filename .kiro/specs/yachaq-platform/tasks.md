@@ -56,23 +56,23 @@
     - **Property 2: Revocation SLA Enforcement**
     - **Validates: Requirements 3.4, 197.1**
 
-- [ ] 5. Audit Receipt Ledger
-  - [ ] 5.1 Implement append-only audit receipt storage
+- [x] 5. Audit Receipt Ledger
+  - [x] 5.1 Implement append-only audit receipt storage
     - Create AuditReceipt entity with hash chaining
     - Implement append-only constraints at database level
     - _Requirements: 12.1, 126.1_
-  - [ ] 5.2 Implement Merkle tree batching for blockchain anchoring
+  - [x] 5.2 Implement Merkle tree batching for blockchain anchoring
     - Batch receipts into Merkle trees
     - Compute and store Merkle proofs
     - _Requirements: 126.3, 126.4_
-  - [ ] 5.3 Implement receipt verification API
+  - [x] 5.3 Implement receipt verification API
     - Verify receipt integrity using hash chain
     - Verify Merkle proof against blockchain anchor
     - _Requirements: 128.1, 128.2_
-  - [ ] 5.4 Write property test for audit receipt generation
+  - [x] 5.4 Write property test for audit receipt generation
     - **Property 5: Audit Receipt Generation**
     - **Validates: Requirements 12.1**
-  - [ ] 5.5 Write property test for Merkle tree validity
+  - [x] 5.5 Write property test for Merkle tree validity
     - **Property 8: Merkle Tree Validity**
     - **Validates: Requirements 126.3**
 
