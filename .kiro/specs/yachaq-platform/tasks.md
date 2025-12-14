@@ -36,23 +36,23 @@
 - [x] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Consent Engine
-  - [-] 4.1 Implement consent contract data model and repository
+- [x] 4. Consent Engine
+  - [x] 4.1 Implement consent contract data model and repository
     - Create ConsentContract entity with all required fields
     - Implement CRUD operations with audit logging
     - _Requirements: 3.1, 3.2_
-  - [ ] 4.2 Implement consent creation flow
+  - [x] 4.2 Implement consent creation flow
     - Validate scope, purpose, duration, compensation
     - Generate consent contract with blockchain anchor hash
     - _Requirements: 3.1, 117.1_
-  - [ ] 4.3 Implement consent revocation with SLA enforcement
+  - [x] 4.3 Implement consent revocation with SLA enforcement
     - Revoke consent and invalidate all active tokens within 60 seconds
     - Generate revocation audit receipt
     - _Requirements: 3.4, 197.1_
-  - [ ] 4.4 Write property test for consent creation
+  - [x] 4.4 Write property test for consent creation
     - **Property 1: Consent Contract Creation Completeness**
     - **Validates: Requirements 3.1**
-  - [ ] 4.5 Write property test for revocation SLA
+  - [x] 4.5 Write property test for revocation SLA
     - **Property 2: Revocation SLA Enforcement**
     - **Validates: Requirements 3.4, 197.1**
 
