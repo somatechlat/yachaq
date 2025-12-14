@@ -1,0 +1,485 @@
+# YACHAQ Platform - Implementation Plan
+
+- [x] 1. Project Setup and Core Infrastructure
+  - [x] 1.1 Initialize monorepo structure with packages for: core, api, client, contracts, shared
+    - Set up TypeScript configuration, ESLint, Prettier
+    - Configure package.json workspaces
+    - _Requirements: 27.1, 57.1_
+  - [x] 1.2 Set up database schemas and migrations
+    - Create PostgreSQL schemas for: users, consents, requests, audit, finance
+    - Set up migration tooling (Prisma/Drizzle)
+    - _Requirements: 51.1, 51.2_
+  - [x] 1.3 Set up Redis for caching and sessions
+    - Configure Redis cluster connection
+    - Implement cache-aside pattern utilities
+    - _Requirements: 53.1, 53.2_
+  - [x] 1.4 Write property test for database schema integrity
+    - **Property 9: Double-Entry Balance**
+    - **Validates: Requirements 186.1**
+
+- [x] 2. Authentication and Identity Service
+  - [x] 2.1 Implement OAuth2/OIDC authentication flow
+    - Integrate Apple, Google, Facebook providers
+    - Implement token issuance with short-lived access tokens
+    - _Requirements: 1.1, 1.2, 6.1_
+  - [x] 2.2 Implement device enrollment and binding
+    - Create device registry with public keys
+    - Implement challenge-response enrollment
+    - _Requirements: 102.1, 217.1_
+  - [x] 2.3 Write property test for token issuance
+    - **Property 14: Token Issuance Round-Trip**
+    - **Validates: Requirements 1.2**
+  - [x] 2.4 Write unit tests for authentication edge cases
+    - Test expired tokens, invalid credentials, MFA flows
+    - _Requirements: 1.3, 1.4_
+
+- [x] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Consent Engine
+  - [-] 4.1 Implement consent contract data model and repository
+    - Create ConsentContract entity with all required fields
+    - Implement CRUD operations with audit logging
+    - _Requirements: 3.1, 3.2_
+  - [ ] 4.2 Implement consent creation flow
+    - Validate scope, purpose, duration, compensation
+    - Generate consent contract with blockchain anchor hash
+    - _Requirements: 3.1, 117.1_
+  - [ ] 4.3 Implement consent revocation with SLA enforcement
+    - Revoke consent and invalidate all active tokens within 60 seconds
+    - Generate revocation audit receipt
+    - _Requirements: 3.4, 197.1_
+  - [ ] 4.4 Write property test for consent creation
+    - **Property 1: Consent Contract Creation Completeness**
+    - **Validates: Requirements 3.1**
+  - [ ] 4.5 Write property test for revocation SLA
+    - **Property 2: Revocation SLA Enforcement**
+    - **Validates: Requirements 3.4, 197.1**
+
+- [ ] 5. Audit Receipt Ledger
+  - [ ] 5.1 Implement append-only audit receipt storage
+    - Create AuditReceipt entity with hash chaining
+    - Implement append-only constraints at database level
+    - _Requirements: 12.1, 126.1_
+  - [ ] 5.2 Implement Merkle tree batching for blockchain anchoring
+    - Batch receipts into Merkle trees
+    - Compute and store Merkle proofs
+    - _Requirements: 126.3, 126.4_
+  - [ ] 5.3 Implement receipt verification API
+    - Verify receipt integrity using hash chain
+    - Verify Merkle proof against blockchain anchor
+    - _Requirements: 128.1, 128.2_
+  - [ ] 5.4 Write property test for audit receipt generation
+    - **Property 5: Audit Receipt Generation**
+    - **Validates: Requirements 12.1**
+  - [ ] 5.5 Write property test for Merkle tree validity
+    - **Property 8: Merkle Tree Validity**
+    - **Validates: Requirements 126.3**
+
+- [ ] 6. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Request and Screening Engine
+  - [ ] 7.1 Implement request data model and repository
+    - Create Request entity with all required fields
+    - Implement request lifecycle state machine
+    - _Requirements: 5.1, 5.2_
+  - [ ] 7.2 Implement screening engine with policy rules
+    - Create deterministic rules engine for policy violations
+    - Implement AI-assisted risk scoring
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ] 7.3 Implement anti-targeting cohort threshold enforcement
+    - Calculate cohort size from eligibility criteria
+    - Reject requests with k < 50
+    - _Requirements: 196.1, 196.2_
+  - [ ] 7.4 Write property test for cohort threshold
+    - **Property 11: Anti-Targeting Cohort Threshold**
+    - **Validates: Requirements 196.1**
+
+- [ ] 8. Escrow and Financial Ledger
+  - [ ] 8.1 Implement escrow account management
+    - Create EscrowAccount entity
+    - Implement deposit, lock, release, refund operations
+    - _Requirements: 7.1, 7.2, 61.1_
+  - [ ] 8.2 Implement double-entry financial ledger
+    - Create JournalEntry entity with idempotency
+    - Implement posting with debit/credit validation
+    - _Requirements: 186.1, 186.2_
+  - [ ] 8.3 Implement escrow funding prerequisite check
+    - Verify escrow is funded before request delivery
+    - Block delivery if escrow insufficient
+    - _Requirements: 7.3_
+  - [ ] 8.4 Write property test for escrow funding prerequisite
+    - **Property 3: Escrow Funding Prerequisite**
+    - **Validates: Requirements 7.1, 7.2**
+  - [ ] 8.5 Write property test for double-entry balance
+    - **Property 9: Double-Entry Balance**
+    - **Validates: Requirements 186.1**
+
+- [ ] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. Matching Engine
+  - [ ] 10.1 Implement privacy-preserving matching
+    - Match requests to DS using ODX labels only
+    - Enforce k-anonymity thresholds
+    - _Requirements: 8.1, 8.2_
+  - [ ] 10.2 Implement uniform compensation enforcement
+    - Ensure same unit price for all DS in same request
+    - Display compensation in local currency (LCD)
+    - _Requirements: 10.1, 10.2_
+  - [ ] 10.3 Write property test for uniform compensation
+    - **Property 4: Uniform Compensation**
+    - **Validates: Requirements 10.2**
+
+- [ ] 11. Query Orchestrator and Time Capsules
+  - [ ] 11.1 Implement live query dispatch to devices
+    - Create signed query plans
+    - Dispatch to eligible devices with timeout handling
+    - _Requirements: 205.1, 205.3_
+  - [ ] 11.2 Implement time capsule creation
+    - Package responses into encrypted capsules
+    - Set mandatory TTL and access policy
+    - _Requirements: 206.1, 206.2_
+  - [ ] 11.3 Implement TTL enforcement and secure deletion
+    - Auto-expire capsules after TTL
+    - Crypto-shred and delete storage
+    - _Requirements: 207.2, 207.3_
+  - [ ] 11.4 Write property test for TTL enforcement
+    - **Property 13: Time Capsule TTL Enforcement**
+    - **Validates: Requirements 206.2**
+
+- [ ] 12. Data Protection Layer
+  - [ ] 12.1 Implement encryption at rest (AES-256-GCM)
+    - Create key hierarchy (K-ROOT, K-DS, K-CAT)
+    - Implement envelope encryption pattern
+    - _Requirements: 121.1, 183.1, 183.2_
+  - [ ] 12.2 Implement data integrity verification
+    - Compute and store cryptographic hashes
+    - Verify integrity on read
+    - _Requirements: 125.1, 125.2_
+  - [ ] 12.3 Write property test for encryption at rest
+    - **Property 6: Data Encryption at Rest**
+    - **Validates: Requirements 121.1**
+  - [ ] 12.4 Write property test for data integrity
+    - **Property 7: Data Integrity Verification**
+    - **Validates: Requirements 125.1**
+
+- [ ] 13. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 14. Settlement and Payout
+  - [ ] 14.1 Implement settlement processing
+    - Trigger settlement on consent completion
+    - Update DS balance and escrow
+    - _Requirements: 11.1, 11.2_
+  - [ ] 14.2 Implement payout orchestration
+    - Support multiple payout methods (bank, mobile money)
+    - Apply fraud checks before payout
+    - _Requirements: 11.4, 110.1_
+  - [ ] 14.3 Write unit tests for settlement and payout flows
+    - Test successful settlement, failed payout, fraud detection
+    - _Requirements: 11.1, 11.4_
+
+- [ ] 15. YC Token Management
+  - [ ] 15.1 Implement YC credit accounting
+    - Track YC issuance and redemption
+    - Enforce non-transferability by default
+    - _Requirements: 192.1, 192.2_
+  - [ ] 15.2 Write property test for YC non-transferability
+    - **Property 10: YC Non-Transferability**
+    - **Validates: Requirements 192.1**
+
+- [ ] 16. On-Device Components (Client SDK)
+  - [ ] 16.1 Implement On-Device Data Store (ODS)
+    - Create encrypted local database
+    - Implement field-level query and redaction
+    - _Requirements: 202.1, 202.4_
+  - [ ] 16.2 Implement On-Device Label Index (ODX)
+    - Create privacy-safe index with coarse labels
+    - Sign index updates with device key
+    - _Requirements: 203.1, 203.3_
+  - [ ] 16.3 Write property test for edge-first data locality
+    - **Property 12: Edge-First Data Locality**
+    - **Validates: Requirements 201.1**
+
+- [ ] 17. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 18. API Layer
+  - [ ] 18.1 Implement REST API endpoints
+    - Create endpoints for all core operations
+    - Implement rate limiting and authentication
+    - _Requirements: 27.1, 27.4, 69.1_
+  - [ ] 18.2 Implement GraphQL API
+    - Create unified schema for queries and mutations
+    - Implement subscriptions for real-time updates
+    - _Requirements: 28.1, 28.7_
+  - [ ] 18.3 Write integration tests for API layer
+    - Test authentication, authorization, rate limiting
+    - _Requirements: 27.4, 29.1_
+
+- [ ] 19. Smart Contracts (Blockchain Layer)
+  - [ ] 19.1 Implement Escrow smart contract
+    - Deploy contract with deposit, lock, release, refund functions
+    - Implement multi-sig governance for disputes
+    - _Requirements: 61.1, 61.2_
+  - [ ] 19.2 Implement Consent Registry smart contract
+    - Store consent hashes with expiration and revocation
+    - Emit events for consent lifecycle
+    - _Requirements: 62.1, 62.2_
+  - [ ] 19.3 Implement Audit Anchor smart contract
+    - Accept Merkle roots and emit Anchor events
+    - Support verification of Merkle proofs
+    - _Requirements: 63.1, 63.2_
+  - [ ] 19.4 Write smart contract tests
+    - Test all contract functions and edge cases
+    - _Requirements: 61.10, 62.10_
+
+- [ ] 20. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 21. Device Attestation Service
+  - [ ] 21.1 Implement device attestation collection
+    - Integrate SafetyNet (Android) and DeviceCheck (iOS) APIs
+    - Store attestation proofs with trust levels
+    - _Requirements: 217.1, 217.2, 217.3_
+  - [ ] 21.2 Implement attestation verification flow
+    - Verify attestation proofs on device responses
+    - Flag devices with failed attestation for enhanced verification
+    - _Requirements: 217.4, 217.5_
+  - [ ] 21.3 Write property test for device attestation collection
+    - **Property 22: Device Attestation Collection**
+    - **Validates: Requirements 217.1**
+
+- [ ] 22. Query Plan Security
+  - [ ] 22.1 Implement query plan signing
+    - Sign query plans with platform key
+    - Include scope, transforms, compensation, and TTL in signed payload
+    - _Requirements: 216.1, 216.3, 216.4, 216.5_
+  - [ ] 22.2 Implement query plan verification on devices
+    - Verify signature before query execution
+    - Reject tampered or expired plans
+    - _Requirements: 216.2, 216.6, 216.8_
+  - [ ] 22.3 Write property test for query plan signature verification
+    - **Property 15: Query Plan Signature Verification**
+    - **Validates: Requirements 216.1, 216.2**
+
+- [ ] 23. Replay Protection Service
+  - [ ] 23.1 Implement nonce registry
+    - Generate unique nonces for capsules
+    - Store nonces with TTL matching capsule TTL
+    - _Requirements: 218.1, 218.4_
+  - [ ] 23.2 Implement replay detection
+    - Validate nonce on capsule access
+    - Reject and log replay attempts
+    - _Requirements: 218.2, 218.3_
+  - [ ] 23.3 Write property test for capsule replay protection
+    - **Property 16: Capsule Replay Protection**
+    - **Validates: Requirements 218.1, 218.2**
+
+- [ ] 24. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 25. Field-Level Access Controls
+  - [ ] 25.1 Implement field specification in consent contracts
+    - Store exact permitted fields in consent contract
+    - Support per-field consent decisions for sensitive fields
+    - _Requirements: 219.1, 219.3_
+  - [ ] 25.2 Implement field-level query enforcement
+    - Extract only permitted fields during query execution
+    - Log field access with hash in receipt
+    - _Requirements: 219.2, 219.5_
+  - [ ] 25.3 Write property test for field-level access enforcement
+    - **Property 17: Field-Level Access Enforcement**
+    - **Validates: Requirements 219.1, 219.2**
+
+- [ ] 26. Transform Restrictions
+  - [ ] 26.1 Implement transform specification in consent
+    - Store allowed transforms in consent contract
+    - Support transform chaining validation
+    - _Requirements: 220.1, 220.3_
+  - [ ] 26.2 Implement transform enforcement
+    - Verify each transform against allowed list
+    - Reject unauthorized transforms with logging
+    - _Requirements: 220.2, 220.6_
+  - [ ] 26.3 Write property test for transform restriction enforcement
+    - **Property 18: Transform Restriction Enforcement**
+    - **Validates: Requirements 220.1, 220.2**
+
+- [ ] 27. Output Restriction Enforcement
+  - [ ] 27.1 Implement output restriction types
+    - Support view-only, aggregate-only, no-export restrictions
+    - Enforce restrictions based on consent specification
+    - _Requirements: 221.1, 221.2_
+  - [ ] 27.2 Implement clean room delivery controls
+    - Disable download, copy, screenshot in view-only mode
+    - Return only aggregated results in aggregate-only mode
+    - _Requirements: 221.3, 221.4_
+
+- [ ] 28. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 29. Secure Deletion Service
+  - [ ] 29.1 Implement crypto-shred deletion
+    - Destroy encryption keys on deletion request
+    - Overwrite storage with random data
+    - _Requirements: 222.2, 222.3_
+  - [ ] 29.2 Implement deletion verification
+    - Generate deletion certificates with timestamp and scope
+    - Coordinate deletion across all storage locations
+    - _Requirements: 222.1, 222.4, 222.9_
+  - [ ] 29.3 Write property test for secure deletion verification
+    - **Property 19: Secure Deletion Verification**
+    - **Validates: Requirements 222.1, 222.2**
+
+- [ ] 30. Consent Obligations
+  - [ ] 30.1 Implement obligation specification
+    - Include data handling obligations in consent contracts
+    - Specify retention limits, usage restrictions, deletion requirements
+    - _Requirements: 223.1, 223.2_
+  - [ ] 30.2 Implement obligation monitoring
+    - Detect obligation violations through audit
+    - Enforce penalties for violations
+    - _Requirements: 223.3, 223.4_
+  - [ ] 30.3 Write property test for consent obligation specification
+    - **Property 23: Consent Obligation Specification**
+    - **Validates: Requirements 223.1**
+
+- [ ] 31. Multi-Device Support
+  - [ ] 31.1 Implement device linking
+    - Link multiple devices to single DS identity
+    - Enforce per-account-type device limits
+    - _Requirements: 224.1, 224.3_
+  - [ ] 31.2 Implement multi-device query routing
+    - Route queries to appropriate device(s) based on data location
+    - Aggregate responses from multiple devices
+    - _Requirements: 224.2, 224.6_
+  - [ ] 31.3 Write property test for multi-device identity linking
+    - **Property 24: Multi-Device Identity Linking**
+    - **Validates: Requirements 224.1**
+
+- [ ] 32. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 33. Privacy-Safe Aggregation
+  - [ ] 33.1 Implement k-anonymity enforcement
+    - Enforce minimum group size (k ≥ 50) for aggregates
+    - Suppress or generalize small groups
+    - _Requirements: 229.1, 229.2_
+  - [ ] 33.2 Implement differential privacy
+    - Calibrate noise to output sensitivity
+    - Track and enforce privacy budget limits
+    - _Requirements: 229.3, 229.4, 229.5_
+  - [ ] 33.3 Write property test for privacy-safe aggregation
+    - **Property 20: Privacy-Safe Aggregation**
+    - **Validates: Requirements 229.1, 229.3**
+
+- [ ] 34. Model-Data Lineage Ledger
+  - [ ] 34.1 Implement lineage recording
+    - Record dataset hashes, training job IDs, policy versions
+    - Track DS contributions at batch level
+    - _Requirements: 230.1, 230.2_
+  - [ ] 34.2 Implement lineage queries
+    - Query complete lineage for any model
+    - Show DS which models used their data
+    - _Requirements: 230.3, 230.4_
+  - [ ] 34.3 Write property test for model-data lineage recording
+    - **Property 21: Model-Data Lineage Recording**
+    - **Validates: Requirements 230.1**
+
+- [ ] 35. Extended Account Types
+  - [ ] 35.1 Implement DS-COMP and DS-ORG accounts
+    - Support company and organization DS accounts
+    - Implement fleet management for multiple devices
+    - _Requirements: 225.1, 225.2, 225.3_
+  - [ ] 35.2 Implement RQ-AR and RQ-NGO/F accounts
+    - Support academic/research requester workflows
+    - Implement NGO/Foundation governance constraints
+    - _Requirements: 226.1, 226.2, 227.1, 227.2_
+
+- [ ] 36. Canonical Event System
+  - [ ] 36.1 Implement event emission for all system activities
+    - Emit device, index, query, capsule, clean room events
+    - Emit verification, training, and ban events
+    - _Requirements: 228.1, 228.2, 228.3, 228.4, 228.5, 228.6, 228.7, 228.8, 228.9_
+  - [ ] 36.2 Write integration tests for event system
+    - Test event emission for all activity types
+    - _Requirements: 228.10_
+
+- [ ] 37. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+
+---
+
+## Extended Implementation - Operational Resilience & Intelligence
+
+- [ ] 38. Privacy Governor Service
+  - [ ] 38.1 Implement Privacy Risk Budget (PRB) allocation
+    - Allocate PRB at campaign quote time
+    - Lock PRB at acceptance
+    - _Requirements: 204.1, 204.2_
+  - [ ] 38.2 Implement PRB consumption tracking
+    - Decrement PRB on transforms/exports
+    - Block operations when PRB exhausted
+    - _Requirements: 204.3, 204.4_
+  - [ ]* 38.3 Write property test for PRB allocation and lock
+    - **Property 28: PRB Allocation and Lock**
+    - **Validates: Requirements 204.1, 204.2**
+  - [ ] 38.4 Implement k-min cohort enforcement
+    - Compute cohort size from criteria
+    - Block queries below k-min threshold
+    - _Requirements: 202.1, 202.2_
+  - [ ]* 38.5 Write property test for k-min cohort enforcement
+    - **Property 26: K-Min Cohort Enforcement**
+    - **Validates: Requirements 202.1, 202.2**
+  - [ ] 38.6 Implement linkage rate limiting
+    - Detect repeated similar queries
+    - Enforce rate limits per requester
+    - _Requirements: 203.1, 203.2_
+  - [ ]* 38.7 Write property test for linkage rate limiting
+    - **Property 27: Linkage Rate Limiting**
+    - **Validates: Requirements 203.1, 203.2**
+
+- [ ] 39. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+
+- [ ] 40. ODX Minimization and Fail-Closed
+  - [ ] 40.1 Implement ODX minimization validation
+    - Validate ODX entries contain only coarse labels/timestamps
+    - Reject entries with raw payload
+    - _Requirements: 201.1, 201.2_
+  - [ ]* 40.2 Write property test for ODX minimization
+    - **Property 25: ODX Minimization**
+    - **Validates: Requirements 201.1, 201.2**
+  - [ ] 40.3 Implement fail-closed policy evaluation
+    - Deny access on policy evaluation failure
+    - Broaden cohorts on uncertainty
+    - _Requirements: 206.1, 206.2_
+  - [ ]* 40.4 Write property test for fail-closed behavior
+    - **Property 29: Fail-Closed Policy Evaluation**
+    - **Validates: Requirements 206.1, 206.3**
+
+- [ ] 41. Requester Governance Service
+  - [ ] 41.1 Implement requester tier management
+    - Assign tiers based on verification level
+    - Gate exports, budgets, and products by tier
+    - _Requirements: 207.1, 207.2_
+  - [ ] 41.2 Implement DUA binding and versioning
+    - Record DUA acceptance with version
+    - Require re-acceptance on DUA updates
+    - _Requirements: 208.1, 208.2_
+  - [ ] 41.3 Implement reputation scoring
+    - Compute scores from disputes, violations, targeting attempts
+    - Update access privileges based on reputation
+    - _Requirements: 209.1, 209.2_
+  - [ ] 41.4 Implement misuse enforcement pipeline
+    - Report → evidence pack → action → receipts
+    - Track enforcement history
+    - _Requirements: 210.1, 210.2_
+  - [ ] 41.5 Implement export controls
+    - Require step-up verification for exports
+    - Apply watermarking and full audit trail
+    - _Requirements: 211.1, 211.2, 211.3_

@@ -1,0 +1,36 @@
+# Test profile configuration
+# Disables OAuth2 client auto-configuration for unit tests
+
+spring:
+  application:
+    name: yachaq-api-test
+  
+  datasource:
+    url: jdbc:postgresql://localhost:55432/yachaq
+    username: yachaq
+    password: yachaq
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.client.reactive.ReactiveOAuth2ClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
+server:
+  port: 0
+
+yachaq:
+  jwt:
+    secret: test-secret-key-minimum-32-characters-long-for-testing
+    access-token-validity: 900
+    refresh-token-validity: 604800

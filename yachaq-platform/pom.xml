@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.yachaq</groupId>
+    <artifactId>yachaq-platform</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>YACHAQ Platform</name>
+    <description>Consent-first personal data sovereignty platform</description>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.0</version>
+        <relativePath/>
+    </parent>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        
+        <!-- Dependency versions -->
+        <spring-cloud.version>2024.0.0</spring-cloud.version>
+        <grpc.version>1.60.0</grpc.version>
+        <protobuf.version>3.25.1</protobuf.version>
+        <web3j.version>4.11.0</web3j.version>
+        <neo4j-driver.version>5.15.0</neo4j-driver.version>
+        <kafka.version>3.7.0</kafka.version>
+        <djl.version>0.27.0</djl.version>
+        <micrometer.version>1.12.2</micrometer.version>
+        <testcontainers.version>1.19.3</testcontainers.version>
+        <archunit.version>1.2.1</archunit.version>
+        <jqwik.version>1.8.2</jqwik.version>
+    </properties>
+
+    <modules>
+        <module>yachaq-core</module>
+        <module>yachaq-consent</module>
+        <module>yachaq-audit</module>
+        <module>yachaq-financial</module>
+        <module>yachaq-query</module>
+        <module>yachaq-screening</module>
+        <module>yachaq-privacy</module>
+        <module>yachaq-verification</module>
+        <module>yachaq-fraud</module>
+        <module>yachaq-graph</module>
+        <module>yachaq-cleanroom</module>
+        <module>yachaq-market</module>
+        <module>yachaq-iot</module>
+        <module>yachaq-blockchain</module>
+        <module>yachaq-api</module>
+        <module>yachaq-gateway</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            <!-- Internal modules -->
+            <dependency>
+                <groupId>com.yachaq</groupId>
+                <artifactId>yachaq-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Common dependencies for all modules -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.jqwik</groupId>
+            <artifactId>jqwik</artifactId>
+            <version>${jqwik.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <!-- Hyperledger Besu repository for web3j transitive dependencies -->
+        <repository>
+            <id>hyperledger-besu</id>
+            <url>https://hyperledger.jfrog.io/artifactory/besu-maven/</url>
+        </repository>
+        <!-- Consensys repository for Ethereum libraries -->
+        <repository>
+            <id>consensys</id>
+            <url>https://artifacts.consensys.net/public/maven/maven/</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <compilerArgs>
+                        <arg>--enable-preview</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.3</version>
+                <configuration>
+                    <argLine>--enable-preview</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

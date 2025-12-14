@@ -1,0 +1,82 @@
+# YACHAQ Platform API Configuration
+# All ports use 55000+ range to avoid conflicts
+# Port Mapping:
+#   API Server: 55080
+#   PostgreSQL: 55432
+#   Redis: 55379
+#   Kafka: 55092
+#   Neo4j HTTP: 55474
+#   Neo4j Bolt: 55687
+
+spring:
+  application:
+    name: yachaq-api
+  
+  datasource:
+    url: jdbc:postgresql://localhost:${DB_PORT:55432}/yachaq
+    username: ${DB_USERNAME:yachaq}
+    password: ${DB_PASSWORD:yachaq}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: false
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:55092}
+    consumer:
+      group-id: yachaq-api
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:55379}
+
+server:
+  port: ${SERVER_PORT:55080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+yachaq:
+  jwt:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-here-minimum-32-chars}
+    access-token-validity: 900      # 15 minutes
+    refresh-token-validity: 604800  # 7 days
+
+spring.security.oauth2.client:
+  registration:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID}
+      client-secret: ${GOOGLE_CLIENT_SECRET}
+      scope: openid,profile,email
+    apple:
+      client-id: ${APPLE_CLIENT_ID}
+      client-secret: ${APPLE_CLIENT_SECRET}
+      scope: openid,name,email
+  provider:
+    apple:
+      authorization-uri: https://appleid.apple.com/auth/authorize
+      token-uri: https://appleid.apple.com/auth/token
+      jwk-set-uri: https://appleid.apple.com/auth/keys

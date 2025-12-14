@@ -1,0 +1,73 @@
+# YACHAQ Platform - Docker Compose
+# All ports use 55000+ range to avoid conflicts
+# Port Mapping:
+#   PostgreSQL: 55432
+#   Redis: 55379
+#   Kafka: 55092
+#   Neo4j HTTP: 55474
+#   Neo4j Bolt: 55687
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: yachaq-postgres
+    environment:
+      POSTGRES_DB: yachaq
+      POSTGRES_USER: yachaq
+      POSTGRES_PASSWORD: yachaq
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yachaq"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: yachaq-redis
+    ports:
+      - "55379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: yachaq-kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:55092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "55092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: yachaq-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/yachaq123
+    ports:
+      - "55474:7474"
+      - "55687:7687"
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  neo4j_data:
