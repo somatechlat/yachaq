@@ -132,44 +132,44 @@
     - **Property 4: Uniform Compensation**
     - **Validates: Requirements 10.2**
 
-- [ ] 11. Query Orchestrator and Time Capsules
-  - [ ] 11.1 Implement live query dispatch to devices
+- [x] 11. Query Orchestrator and Time Capsules
+  - [x] 11.1 Implement live query dispatch to devices
     - Create signed query plans
     - Dispatch to eligible devices with timeout handling
     - _Requirements: 205.1, 205.3_
-  - [ ] 11.2 Implement time capsule creation
+  - [x] 11.2 Implement time capsule creation
     - Package responses into encrypted capsules
     - Set mandatory TTL and access policy
     - _Requirements: 206.1, 206.2_
-  - [ ] 11.3 Implement TTL enforcement and secure deletion
+  - [x] 11.3 Implement TTL enforcement and secure deletion
     - Auto-expire capsules after TTL
     - Crypto-shred and delete storage
     - _Requirements: 207.2, 207.3_
-  - [ ] 11.4 Write property test for TTL enforcement
+  - [x] 11.4 Write property test for TTL enforcement
     - **Property 13: Time Capsule TTL Enforcement**
     - **Validates: Requirements 206.2**
 
-- [ ] 12. Data Protection Layer
-  - [ ] 12.1 Implement encryption at rest (AES-256-GCM)
+- [x] 12. Data Protection Layer
+  - [x] 12.1 Implement encryption at rest (AES-256-GCM)
     - Create key hierarchy (K-ROOT, K-DS, K-CAT)
     - Implement envelope encryption pattern
     - _Requirements: 121.1, 183.1, 183.2_
-  - [ ] 12.2 Implement data integrity verification
+  - [x] 12.2 Implement data integrity verification
     - Compute and store cryptographic hashes
     - Verify integrity on read
     - _Requirements: 125.1, 125.2_
-  - [ ] 12.3 Write property test for encryption at rest
+  - [x] 12.3 Write property test for encryption at rest
     - **Property 6: Data Encryption at Rest**
     - **Validates: Requirements 121.1**
-  - [ ] 12.4 Write property test for data integrity
+  - [x] 12.4 Write property test for data integrity
     - **Property 7: Data Integrity Verification**
     - **Validates: Requirements 125.1**
 
-- [ ] 13. Checkpoint - Ensure all tests pass
+- [x] 13. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 14. Settlement and Payout
-  - [ ] 14.1 Implement settlement processing
+  - [-] 14.1 Implement settlement processing
     - Trigger settlement on consent completion
     - Update DS balance and escrow
     - _Requirements: 11.1, 11.2_
