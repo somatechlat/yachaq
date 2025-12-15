@@ -1,148 +1,220 @@
-# YACHAQ System Requirements Specification (Consolidated)
+# YACHAQ System Requirements Specification (Complete)
 
-**Document Purpose:** Single source of truth for all system requirements, specifications, and technical standards.
+**Document Purpose:** Single source of truth for all system requirements, specifications, and technical standards for the YACHAQ system/platform.
 
 **Version:** 1.0  
 **Last Updated:** December 2025  
-**Status:** APPROVED
+**Status:** APPROVED (Consolidated)
+
+> **Assurance statement:** The system is designed for **high assurance** and **verifiable privacy-by-architecture**. No real system is literally “unbreakable,” but YACHAQ is specified to be **defense-in-depth, fail-closed, and auditable**.
 
 ---
 
-## TABLE OF CONTENTS
+## Table of Contents
 
 1. [System Overview](#1-system-overview)
 2. [System Objectives](#2-system-objectives)
 3. [Core Invariants](#3-core-invariants)
 4. [Actors & Trust Boundaries](#4-actors--trust-boundaries)
 5. [High-Level Architecture](#5-high-level-architecture)
-6. [Non-Functional Requirements](#6-non-functional-requirements)
-7. [Security Requirements](#7-security-requirements)
-8. [Module Specifications](#8-module-specifications)
-9. [Phone-as-Node Specification](#9-phone-as-node-specification)
-10. [Metering & Verification](#10-metering--verification)
-11. [Intelligence & Math Architecture](#11-intelligence--math-architecture)
-12. [Threat Model & War Games](#12-threat-model--war-games)
-13. [Pricing & Economics](#13-pricing--economics)
-14. [Data Model](#14-data-model)
-15. [Integration Requirements](#15-integration-requirements)
-16. [Compliance Requirements](#16-compliance-requirements)
+6. [Functional Requirements](#6-functional-requirements)
+7. [Non-Functional Requirements](#7-non-functional-requirements)
+8. [Security Requirements](#8-security-requirements)
+9. [Module Specifications](#9-module-specifications)
+10. [Phone-as-Node Specification](#10-phone-as-node-specification)
+11. [Metering & Verification](#11-metering--verification)
+12. [Intelligence & Math Architecture](#12-intelligence--math-architecture)
+13. [Threat Model & War Games](#13-threat-model--war-games)
+14. [Pricing & Economics](#14-pricing--economics)
+15. [Data Model](#15-data-model)
+16. [Integration Requirements](#16-integration-requirements)
+17. [Compliance Requirements](#17-compliance-requirements)
+18. [Appendix A — ODX Ontology v1](#appendix-a--odx-ontology-v1)
+19. [Appendix B — ODX Criteria Language v1](#appendix-b--odx-criteria-language-v1)
+20. [Appendix C — QueryPlan DSL v1](#appendix-c--queryplan-dsl-v1)
+21. [Appendix D — Clean-Room Output Schemas v1](#appendix-d--clean-room-output-schemas-v1)
+22. [Appendix E — AuditReceipts & KIPUX Provenance](#appendix-e--auditreceipts--kipux-provenance)
 
 ---
 
-## 1. SYSTEM OVERVIEW
+## 1. System Overview
 
 YACHAQ is a **consent-first personal data and knowledge sovereignty system** enabling:
 - Granular, purpose-bound, time-bound data access requests
 - Privacy-preserving matching to eligible users
-- Explicit acceptance/negotiation/rejection by users
-- Immutable audit trails for all events
+- Explicit acceptance / negotiation / rejection by users
+- Immutable audit trails for all key events
 - Uniform compensation per defined unit, displayed in user local currency
 - Direct settlement through compliant payout rails
-- Enterprise and community requester access via portal + APIs
-- Open/inspectable protocol components, with secure closed operations secrets
+- Enterprise (Verified Organizations) and community requester access via portal + APIs
+- Open/inspectable protocol components, with narrowly-scoped operational secrets (e.g., signing keys)
 
-**YACHAQ** (ya·chaq) — From Quechua: "one who knows, one who learns, one who understands."
+**Meaning:** *YACHAQ* (Quechua) — “one who knows, learns, understands.”
+
+**Core design choice:** **Phone-as-Node**.
+- The phone is the **execution endpoint**.
+- Raw data stays on device by default.
+- Discovery uses an on-device summary index (**ODX**) only.
+- Fulfillment is a signed **QueryPlan** executed locally.
+- Delivery is P2P via encrypted **Time Capsules**.
 
 ---
 
-## 2. SYSTEM OBJECTIVES
+## 2. System Objectives
 
 | ID | Objective |
 |----|-----------|
 | SO-1 | Ensure humans control data use through explicit consent |
 | SO-2 | Make all access auditable, explainable, and user-visible |
-| SO-3 | Enable legal, transparent compensation with non-speculative utility credits |
-| SO-4 | Support both Verified Organizations and Community Requesters with tiered controls |
+| SO-3 | Enable legal, transparent compensation with non-speculative utility credits and/or fiat payouts |
+| SO-4 | Support Verified Organizations (VO) and Community Requesters (CR) with tiered controls |
 | SO-5 | Prevent operator access to raw personal data by default (privacy by architecture) |
 | SO-6 | Operate globally with region-appropriate compliance and payout methods |
 
 ---
 
-## 3. CORE INVARIANTS (Non-Negotiable)
+## 3. Core Invariants (Non-Negotiable)
 
-These are **hard constraints** that must be true in production:
+These constraints MUST be true in production:
 
-1. **Raw DS data stays device-resident by default**
-2. **Discovery uses ODX summaries only** — no raw data in discovery
-3. **Fine access requires explicit ConsentContract + signed QueryPlan**
-4. **Time Capsules are encrypted and TTL-enforced** — crypto-shred + deletion receipts
-5. **Default delivery is Clean Room** — exports are gated and high-risk
-6. **All key events emit AuditReceipts** — append-only with Merkle batching
-7. **KIPUX abstraction:** knots=receipts, cords=threads, weave=provenance graph
-8. **Settlement uses escrow prefunding + double-entry accounting**
-9. **Payout based on unit semantics**, not device count
-10. **Anti-targeting + minors protections + strict allow-list transforms**
+1) **Raw DS data stays device-resident by default**
+2) **Discovery uses ODX summaries only** (no raw payload in discovery)
+3) **Fine access requires explicit ConsentContract + signed QueryPlan**
+4) **Time Capsules are encrypted and TTL-enforced** (crypto-shred + deletion receipts, where enforceable)
+5) **Default delivery is Clean Room** (exports are gated and high-risk)
+6) **All key events emit AuditReceipts** (append-only, Merkle batched)
+7) **KIPUX abstraction:** knots=receipts, cords=threads, weave=provenance graph
+8) **Settlement uses escrow prefunding + double-entry accounting**
+9) **Payout based on unit semantics**, not device count
+10) **Anti-targeting + minors protections + strict allow-list transforms**
 
 ---
 
-## 4. ACTORS & TRUST BOUNDARIES
+## 4. Actors & Trust Boundaries
 
 ### 4.1 Actors
 
 | Actor | Description |
 |-------|-------------|
 | DS (Data Sovereign) | End user who owns data and consent decisions |
-| Requester VO | Verified Organization (higher trust) |
-| Requester CR | Community Requester (limited) |
-| Platform Operator | SaaS admin console |
-| Compliance/Audit Reviewer | Read-only access |
-| Payment Provider(s) | Stripe, regional providers |
-| Identity Provider(s) | OAuth (Google, Apple, Facebook) |
+| Requester VO | Verified Organization (higher trust tier) |
+| Requester CR | Community Requester (limited tier) |
+| Platform Operator | Runs the control plane; no raw data access by default |
+| Compliance/Audit Reviewer | Read-only access to receipts and control-plane audit trails |
+| Payment Provider(s) | Payments and payouts rails |
+| Identity Provider(s) | OAuth/OIDC for login; optional VC/DID for identity reveal |
 
-### 4.2 Trust Boundaries
+### 4.2 Trust boundaries
 
 | Boundary | Description |
 |----------|-------------|
-| DS Device | Private data stays here |
-| Consent | Scope/purpose/time enforcement |
-| Requester | Cannot see raw DS data without explicit reveal |
-| Operator | Cannot access raw DS data by default |
+| DS Device | Private raw data and ODX live here |
+| Consent | Scope/purpose/time enforcement; fail-closed |
+| Requester | Receives only what DS consented to; default de-identified |
+| Operator | Control plane only; no raw data ingestion paths |
 | Ledger | Immutable receipts only |
 
 ---
 
-## 5. HIGH-LEVEL ARCHITECTURE
+## 5. High-Level Architecture
 
-### 5.1 Logical Components
+### 5.1 Logical components
 
-1. **User Mobile App (iOS/Android)**
-2. **User Web Portal**
-3. **Requester Portal (Enterprise + Community)**
-4. **YACHAQ SaaS Control Plane (Operator)**
-5. **Consent Engine**
-6. **Policy/Safety Screening Engine** (AI + rules)
-7. **Matching Engine** (privacy-preserving)
-8. **Data Connectors & Ingestion**
-9. **Privacy Layer** (anonymization, pseudonymization, ZK proofs)
-10. **Data Storage** (encrypted)
-11. **Data Access Gateway** (scoped tokens)
-12. **Audit Ledger Layer** (append-only + optional blockchain anchoring)
-13. **Settlement Engine** (escrow, fees, YC accounting)
-14. **Payout Orchestrator** (local currency, rails)
-15. **Observability & Security Operations**
+1) **DS Mobile App (iOS/Android)** — Node Runtime + UI
+2) **DS Web Portal** — account, receipts, payouts overview
+3) **Requester Portal (VO + CR)** — create requests, verify capsules, manage disputes
+4) **YACHAQ Control Plane (Operator)** — policy, moderation, templates, ops
+5) **Consent Engine** — contract creation, evaluation, revocation
+6) **Policy/Safety Screening Engine** — rules + AI assistance, emits signed PolicyStamp
+7) **Matching Engine** — privacy-preserving distribution and local matching
+8) **Connector Framework** — OS frameworks, OAuth, user-provided exports
+9) **Privacy Governor** — PRB (risk budgeting), k-min cohorts, linkage defense
+10) **Audit Ledger Layer** — append-only receipts, Merkle batching, optional anchoring
+11) **Settlement Engine** — escrow, fees, double-entry ledger
+12) **Payout Orchestrator** — local currency rails
+13) **Observability & SecOps** — telemetry without personal payload
 
-### 5.2 Node Network Roles
+### 5.2 Node network roles
 
-| Role | Function | Decrypts? |
-|------|----------|-----------|
-| RG (Relay Gateway) | Route encrypted envelopes | NO |
-| CCW (Confidential Compute Worker) | Execute in TEE | YES (attested) |
-| DN (Delivery Node) | Serve clean-room sessions | Controlled |
+| Role | Function | Decrypts? | Default in v1 |
+|------|----------|-----------|---------------|
+| RG (Relay Gateway) | Route encrypted envelopes | NO | Optional |
+| DN (Delivery Node) | Serve clean-room sessions (requester side) | Controlled | Optional |
+| CCW (Confidential Compute Worker) | Execute in TEE | YES (attested) | **NOT default** |
+
+**CCW note:** Any decryption outside DS device conflicts with the default invariant. Therefore, CCW is **disabled by default** and may only be enabled as an explicit, high-risk mode (treated as “export-equivalent”), subject to policy and explicit DS consent.
+
+### 5.3 Data movement model
+- **Discovery:** coordinator → node (request broadcast); node matches locally using ODX.
+- **Fulfillment:** node executes QueryPlan locally, produces Time Capsule.
+- **Delivery:** node → requester P2P transfer; coordinator may provide signaling/relay for ciphertext only.
 
 ---
 
-## 6. NON-FUNCTIONAL REQUIREMENTS
+## 6. Functional Requirements
 
-### 6.1 Availability & Reliability
+### 6.1 Account, onboarding, and trust center
+- FR-ONB-1: DS onboarding MUST explain invariants and show a “Proof & Transparency” dashboard.
+- FR-ONB-2: DS MUST be able to select privacy presets (Minimal/Standard/Full) and customize.
+- FR-ONB-3: DS MUST have an emergency “Pause all sharing” kill switch.
 
+### 6.2 Data acquisition (device-only)
+- FR-DATA-1: Data acquisition MUST be local-only: OS frameworks, OAuth, and user-provided exports/imports.
+- FR-DATA-2: The system MUST NOT scrape other apps, log keystrokes, or bypass OS privacy boundaries.
+- FR-DATA-3: Imports MUST never be uploaded; parsing MUST be streaming and size-limited.
+
+### 6.3 ODX (On-Device Discovery Index)
+- FR-ODX-1: ODX MUST contain only labels, aggregates, buckets, cluster IDs, and coarse geo/time.
+- FR-ODX-2: ODX MUST never store raw text/audio/media or precise GPS by default.
+- FR-ODX-3: ODX MUST support “Why did I match?” explanations locally.
+
+### 6.4 Request lifecycle
+- FR-REQ-1: Requesters MUST create requests via templates or custom criteria (ODX criteria language).
+- FR-REQ-2: Every request MUST be screened; approved requests MUST carry a signed PolicyStamp.
+- FR-REQ-3: High-risk requests MUST be automatically downscoped (coarse-only, derived-only, higher k-min).
+
+### 6.5 ConsentContracts
+- FR-CC-1: DS MUST review plain-language summaries and technical view before accepting.
+- FR-CC-2: ConsentContracts MUST include scope, purpose hash, duration, payout, TTL, identity requirement.
+- FR-CC-3: DS MUST be able to reject or negotiate scope.
+
+### 6.6 QueryPlan execution
+- FR-QP-1: QueryPlan MUST be signed by requester, validated against contract and policy stamp.
+- FR-QP-2: QueryPlan MUST execute in a sandbox (allowlisted ops, no network, resource limits).
+- FR-QP-3: Plan Preview MUST show outputs and privacy impact before execution.
+
+### 6.7 Time Capsules & P2P delivery
+- FR-CAP-1: Time Capsules MUST be encrypted end-to-end and bound to ConsentContract + QueryPlan.
+- FR-CAP-2: P2P transfer MUST be resumable, integrity-checked, and receipt-based.
+- FR-CAP-3: TTL must be enforced via key lifecycle controls (crypto-shred) and deletion receipts where applicable.
+
+### 6.8 AuditReceipts & KIPUX provenance
+- FR-AUD-1: All key events MUST emit AuditReceipts.
+- FR-AUD-2: Receipts MUST be append-only and Merkle-batched.
+- FR-AUD-3: DS MUST be able to export an audit bundle for disputes and audits.
+
+### 6.9 Settlement & payouts
+- FR-FIN-1: Requesters MUST pre-fund escrow prior to delivery.
+- FR-FIN-2: Double-entry ledger MUST reconcile all movements.
+- FR-FIN-3: DS sees uniform unit price and local currency display.
+
+### 6.10 Identity reveal (optional)
+- FR-ID-1: DS identity is anonymous/pseudonymous by default.
+- FR-ID-2: If identity reveal is required, DS MUST opt in explicitly.
+- FR-ID-3: Identity artifacts MUST be sent directly to requester (P2P), not through YACHAQ servers.
+
+---
+
+## 7. Non-Functional Requirements
+
+### 7.1 Availability & reliability
 | ID | Requirement |
 |----|-------------|
-| NFR-A1 | 99.9% monthly uptime (control plane APIs) |
+| NFR-A1 | 99.9% monthly uptime for control-plane APIs |
 | NFR-A2 | Degraded mode allows DS to view last-known consent/audit |
 | NFR-A3 | DR: RPO ≤ 15 min, RTO ≤ 4 hours |
 
-### 6.2 Performance
-
+### 7.2 Performance
 | ID | Requirement |
 |----|-------------|
 | NFR-P1 | Consent acceptance → confirmation ≤ 2s p95 |
@@ -150,172 +222,159 @@ These are **hard constraints** that must be true in production:
 | NFR-P3 | Audit receipt generation ≤ 1s p95 |
 | NFR-P4 | Portal page load ≤ 2.5s p75 |
 
-### 6.3 Scalability
-
-| ID | Requirement |
-|----|-------------|
-| NFR-S1 | Horizontal scaling for matching/screening/notification |
-| NFR-S2 | Storage separation: hot audit index vs cold archive |
-
-### 6.4 UX Principles
-
+### 7.3 UX principles
 | ID | Requirement |
 |----|-------------|
 | NFR-U1 | No dark patterns; no forced nudges |
 | NFR-U2 | Quiet by design: user controls notifications |
-| NFR-U3 | 8th-grade reading level "Simple View" + expandable "Technical View" |
+| NFR-U3 | 8th-grade reading level “Simple View” + expandable “Technical View” |
 
 ---
 
-## 7. SECURITY REQUIREMENTS
+## 8. Security Requirements
 
-### 7.1 Identity & Authentication
-
+### 8.1 Identity & authentication
 | ID | Requirement |
 |----|-------------|
 | SR-I1 | OAuth2/OIDC for DS login |
 | SR-I2 | MFA mandatory for VO requesters |
 | SR-I3 | Short-lived tokens, refresh rotation, device binding |
-| SR-I4 | Admin console: phishing-resistant MFA (WebAuthn) |
+| SR-I4 | Admin console uses phishing-resistant MFA (WebAuthn) |
 
-### 7.2 Authorization & Access Control
-
+### 8.2 Authorization & access control
 | ID | Requirement |
 |----|-------------|
-| SR-A1 | Zero-trust: every call authenticated + authorized (mTLS + JWT) |
+| SR-A1 | Zero-trust: every call authenticated + authorized |
 | SR-A2 | ABAC/RBAC hybrid |
 | SR-A3 | Least privilege; default deny |
 
-### 7.3 Data Protection
-
+### 8.3 Data protection
 | ID | Requirement |
 |----|-------------|
 | SR-D1 | TLS 1.2+ in transit (TLS 1.3 preferred) |
-| SR-D2 | AES-256 at rest (KMS-managed) |
-| SR-D3 | Field-level encryption for sensitive attributes |
-| SR-D4 | HSM/KMS key management with rotation |
+| SR-D2 | Encryption at rest for all control-plane secrets |
+| SR-D3 | Field-level encryption for sensitive control-plane attributes |
+| SR-D4 | KMS/HSM-managed key rotation for operator keys |
 
-### 7.4 Privacy & Minimization
-
+### 8.4 Privacy & minimization
 | ID | Requirement |
 |----|-------------|
 | SR-P1 | Collect minimum necessary; DS sees what/why/how long |
-| SR-P2 | Raw data never sent to Requester without identity reveal consent |
-| SR-P3 | Prefer on-device or proof-based eligibility checks |
+| SR-P2 | Raw data never sent to requester without explicit consent and strict gating |
+| SR-P3 | Prefer on-device/proof-based eligibility checks |
+| SR-P4 | Anti-targeting protections; k-min cohorts; linkage defense |
 
-### 7.5 Audit & Logging
-
+### 8.5 Audit & logging
 | ID | Requirement |
 |----|-------------|
-| SR-L1 | Immutable audit receipts for all key events |
+| SR-L1 | Immutable AuditReceipts for all key events |
 | SR-L2 | No raw payload in logs |
 | SR-L3 | Security events to SIEM with tamper-evident retention |
 
-### 7.6 Secure SDLC
-
+### 8.6 Secure SDLC
 | ID | Requirement |
 |----|-------------|
 | SR-SD1 | SAST/DAST/dependency scanning mandatory |
 | SR-SD2 | Threat modeling per module |
 | SR-SD3 | Pen test before beta, then quarterly |
 
-### 7.7 Abuse/Fraud Controls
-
+### 8.7 Abuse/fraud controls
 | ID | Requirement |
 |----|-------------|
 | SR-F1 | Requester rate limits, spend limits, anomaly detection |
-| SR-F2 | DS payout fraud detection (velocity, fingerprinting, behavioral) |
-| SR-F3 | Escrow holds + dispute workflows |
+| SR-F2 | DS payout fraud detection (velocity, device integrity, unit dedupe) |
+| SR-F3 | Escrow holds + objective dispute workflows |
 
 ---
 
-## 8. MODULE SPECIFICATIONS
+## 9. Module Specifications
 
-### 8.1 DS Mobile App
+This section enumerates the complete modules required for a full YACHAQ platform.
 
-**Purpose:** Data management, consent control, earnings
+### 9.1 DS Mobile App (Provider)
+**Purpose:** Local data management, consent control, earnings, audit, delivery.
 
-**Key Features:**
-- Data source connections (OAuth connectors)
-- Consent dashboard per category/attribute/purpose/duration
-- Request inbox with requester tier, purpose, scope, LCD payout
-- Audit timeline
-- Payout wallet
-- Emergency "pause all sharing"
+**Modules:**
+1) Onboarding & Trust Center
+2) Connector Manager (OS frameworks, OAuth, Imports)
+3) Permissions Console (OS + YACHAQ scopes)
+4) ODX Inspector (local-only)
+5) Requests Inbox
+6) Consent Studio (scope editor + plan preview)
+7) Plan Execution Monitor
+8) P2P Delivery Monitor
+9) Earnings Wallet + Receipts
+10) Identity Wallet (optional)
+11) Audit Timeline + Export
+12) Emergency Controls (pause/revoke/purge)
 
-### 8.2 Consent Engine
+### 9.2 DS Web Portal
+- View consents, earnings, receipts, disputes.
+- Export audit bundles.
+- Manage payout preferences.
 
-**Purpose:** Policy decision point for all data access
+### 9.3 Requester Portal (VO + CR)
+- Create requests (templates/custom)
+- Budget/PRB estimation
+- Policy outcomes and downscoping suggestions
+- Capsule verification tools
+- Clean-room session controls (if enabled)
+- Disputes and evidence
 
-**Interfaces:**
+### 9.4 Operator Control Plane
+- Requester vetting & tier management
+- Policy configuration and moderation workflows
+- Template registry and schema governance
+- Incident response, key rotation, and security controls
+
+### 9.5 Consent Engine
+Interfaces:
 - `createContract(ds, requester, scope, purpose, duration, price)`
 - `evaluateAccess(contractId, requestedFields)`
 - `revokeContract(contractId)`
 - `getContracts(dsId)`
 
-### 8.3 Query Orchestrator
+### 9.6 Query Orchestrator (Distribution + coordination)
+- Publish approved requests (broadcast or rotating topics)
+- Provide rendezvous/signaling tokens
+- Never collects raw data
 
-**Purpose:** Dispatch live queries to devices
-
-**Interfaces:**
-- `dispatchQuery(queryPlan, eligibleDevices)`
-- `collectResponses(queryId, timeout)`
-- `buildCapsule(responses, ttl)`
-
-### 8.4 Screening Engine
-
-**Purpose:** Block abusive/illegal requests
-
-**Interfaces:**
+### 9.7 Screening Engine
+Interfaces:
 - `screenRequest(request)` → pass/fail + reason codes
 - `getReasonCodes(screeningId)`
 - `appealDecision(screeningId, evidence)`
 
-### 8.5 Audit Receipt Ledger
-
-**Purpose:** Immutable record of all events
-
-**Interfaces:**
+### 9.8 Audit Receipt Ledger
+Interfaces:
 - `appendReceipt(event, actor, timestamp, hashes)`
 - `getReceipts(filter)`
 - `verifyReceipt(receiptId, proof)`
-- `anchorBatch(receipts)` → blockchain
+- `anchorBatch(receipts)` (optional)
 
-### 8.6 Financial Ledger
-
-**Purpose:** Double-entry accounting
-
-**Interfaces:**
+### 9.9 Financial Ledger (Double-entry)
+Interfaces:
 - `postEntry(debit, credit, amount, reference)`
 - `getBalance(accountId)`
 - `reconcile(providerId, statement)`
 
-### 8.7 Privacy Governor
-
-**Purpose:** PRB, k-min cohorts, linkage defense
-
-**Interfaces:**
+### 9.10 Privacy Governor
+Interfaces:
 - `allocatePRB(campaignId, riskProfile)`
 - `lockPRB(campaignId)`
 - `consumePRB(campaignId, transformId, riskCost)`
 - `checkCohort(criteria, kMin)`
 - `detectLinkage(requesterId, queryHistory)`
 
-### 8.8 Clean Room Delivery
-
-**Purpose:** Controlled data access environment
-
-**Interfaces:**
+### 9.11 Clean Room Delivery (optional, strongly gated)
+Interfaces:
 - `createSession(capsuleId, requesterId, ttl)`
 - `renderData(sessionId, query)`
 - `logInteraction(sessionId, action)`
 - `terminateSession(sessionId)`
 
-### 8.9 KIPUX Graph Store
-
-**Purpose:** Provenance graphs (knots, cords, weaves)
-
-**Interfaces:**
+### 9.12 KIPUX Graph Store
+Interfaces:
 - `appendKnot(knotType, data, cordId)`
 - `createCord(cordType, metadata)`
 - `queryWeave(filter)`
@@ -323,43 +382,34 @@ These are **hard constraints** that must be true in production:
 
 ---
 
-## 9. PHONE-AS-NODE SPECIFICATION
+## 10. Phone-as-Node Specification
 
-### 9.1 Default Decision
+### 10.1 Default decision
+Phones are first-class execution endpoints (“Full Agent”):
+- On-device store + vault
+- ODX build
+- Signed QueryPlan execution
 
-Phones are **first-class execution endpoints** (Full Agent) and may perform **non-decrypting network roles**:
-- **Full Agent:** On-device data store + ODX + signed QueryPlan execution
-- **Relay/Witness:** Route encrypted envelopes, mirror presence/index
+Phones MAY optionally act as non-decrypting network roles (relay/witness) where safe.
 
-Phones **MUST NOT** be decrypting CCW by default.
+### 10.2 Device lifecycle states
+`PENDING_ENROLLMENT → ACTIVE → SUSPENDED → QUARANTINED → DECOMMISSIONED`
 
-### 9.2 Device Lifecycle States
-
-```
-PENDING_ENROLLMENT → ACTIVE → QUARANTINED → DECOMMISSIONED
-                         ↓
-                    SUSPENDED
-```
-
-### 9.3 Device Caps & Anti-Farming
-
+### 10.3 Device caps & anti-farming
 | Control | Description |
 |---------|-------------|
-| Enrollment Cap | 3-5 devices per DS-IND (policy value) |
+| Enrollment Cap | 3–5 devices per DS-IND (policy value) |
 | Concurrency Cap | Limits devices per DS per campaign |
 | Unit Semantics Dedupe | UNIT-PERSON pays once per DS |
 
-### 9.4 Fraud Hooks
+### 10.4 Integrity and fraud hooks
+- Device integrity signals (soft fail; degrade outputs)
+- Rate limits and anti-sybil constraints
+- Audit challenges (proof of execution, redundancy receipts)
 
-- Device fingerprinting & integrity
-- Location integrity (cross-source verification)
-- Behavioral biometrics (anti-bot)
-- Audit challenges
-
-### 9.5 Lost/Compromised Device
-
+### 10.5 Lost/compromised device
 One-button emergency action triggers:
-- Immediate server-side quarantine
+- Quarantine device token
 - Revoke refresh tokens
 - Invalidate device presence
 - Deny job dispatch
@@ -367,42 +417,37 @@ One-button emergency action triggers:
 
 ---
 
-## 10. METERING & VERIFICATION
+## 11. Metering & Verification
 
-### 10.1 Three Separate Meters
-
-| Meter | What It Measures | Who Gets Paid |
-|-------|------------------|---------------|
+### 11.1 Three separate meters
+| Meter | What it measures | Who gets paid |
+|------|-------------------|--------------|
 | VU (Value Units) | Unit semantics completion | DS |
-| RU (Resource Units) | CPU, memory, IO, bandwidth | Nodes |
+| RU (Resource Units) | CPU/memory/IO/bandwidth | Nodes (optional) |
 | TU (Token Units) | LLM inference | Platform cost |
 
-### 10.2 Unit Semantics Catalog (USC)
-
+### 11.2 Unit Semantics Catalog (USC)
 Every paid request references:
-- **Unit Type:** PERSON / DEVICE / LOCATION / TIME / OBSERVATION
-- **USID:** Auditable definition of fields, transforms, restrictions, TTL, quality
+- Unit Type: PERSON / DEVICE / LOCATION / TIME / OBSERVATION
+- USID: auditable definition of fields, transforms, restrictions, TTL, quality
 
-### 10.3 Verification Protocol
+### 11.3 Verification protocol
+Requesters verify without raw discovery:
+1) Capsule Manifest (hashed fields list + transform provenance)
+2) Proof Bundle (signatures, policy references, receipts)
+3) Delivery Receipts (created/delivered/expired/deleted)
 
-Requesters can verify (without raw data):
-1. **Capsule Manifest:** Hashed field list, transform provenance, policy refs
-2. **Proof Bundle:** Device signatures, attestations, redundancy receipts
-3. **Delivery Receipts:** Creation, access, TTL, deletion timestamps
-
-### 10.4 Disputes
-
-- Settlement is automatic on objective rules
-- Requester can open dispute within defined window
-- Disputed units covered by risk reserve/holdback
-- No "buyer approval hostage" pattern
+### 11.4 Disputes
+- Objective rules based on receipts
+- Dispute window defined per request
+- Risk reserve/holdback covers disputes
+- No “buyer approval hostage” pattern
 
 ---
 
-## 11. INTELLIGENCE & MATH ARCHITECTURE
+## 12. Intelligence & Math Architecture
 
-### 11.1 Normative Principles
-
+### 12.1 Normative principles
 | ID | Principle |
 |----|-----------|
 | P1 | AI may recommend; policy+math+receipts decide |
@@ -413,126 +458,124 @@ Requesters can verify (without raw data):
 | P6 | Proof-first operations (receipts, Merkle batching) |
 | P7 | Unit semantics payout, not device count |
 
-### 11.2 AI Allowed Responsibilities
-
-- Recommend campaign budgets and expected fill
+### 12.2 AI allowed responsibilities
+- Recommend budgets and expected fill
 - Assist policy classification (risk grading)
 - Surface fraud patterns and propose holds
-- Operate inside clean-room as constrained assistant
+- Operate in clean-room as constrained assistant
 
-### 11.3 AI Forbidden Responsibilities
-
-- Override consent or alter QueryPlan scope
+### 12.3 AI forbidden responsibilities
+- Override consent or expand QueryPlan scope
 - Enable narrow targeting or re-identification
 - Change price/terms after acceptance
 - Finalize DS payouts without deterministic checks
 
-### 11.4 Privacy Risk Budget (PRB)
-
-```
-PRB_remaining = PRB_allocated − Σ risk_cost(transform, sensitivity, export_mode, cohort)
-```
+### 12.4 Privacy Risk Budget (PRB)
+`PRB_remaining = PRB_allocated − Σ risk_cost(transform, sensitivity, export_mode, cohort)`
 
 - Allocated at quote time
 - Locked at acceptance
-- Exports consume orders-of-magnitude more PRB
+- Exports consume significantly more PRB
 
 ---
 
-## 12. THREAT MODEL & WAR GAMES
+## 13. Threat Model & War Games
 
-### 12.1 Adversary Profiles
+### 13.1 Adversary profiles
+1) Malicious requester (re-identify, narrow-target, extract)
+2) Careless requester (accidental risky cohort)
+3) Fraud seller ring (device farms)
+4) Compromised device (malware)
+5) Insider threat
+6) Competitor attacker (DDoS, poisoning)
+7) Regulators/auditors (deplatforming risk)
 
-1. Malicious requester (re-identify, narrow-target, extract)
-2. Careless requester (accidental risky cohort)
-3. Fraud seller ring (device farms, co-location)
-4. Compromised device (malware, fake proofs)
-5. Node operator attacker (bypass confidentiality)
-6. Insider threat (unauthorized access)
-7. Competitor/attacker (DDoS, reputation poison)
-8. Regulators/auditors (deplatforming risk)
-
-### 12.2 Critical Failure Modes
-
-| Mode | Controls | Kill Switches |
-|------|----------|---------------|
+### 13.2 Critical failure modes
+| Mode | Controls | Kill switches |
+|------|----------|--------------|
 | Privacy failure | k-min, PRB, rate limits | Derived-only mode |
-| Buyer misuse | KYB, DUA, clean-room, watermarking | Disable exports |
+| Buyer misuse | KYB/DUA, clean-room, watermarking | Disable exports |
 | Fraud collapse | Unit dedupe, caps, holdback | Freeze payouts |
-| PSP deplatforming | No custody, clear MO | Switch rails |
-| App store removal | Purpose-bound permissions | Disable sensitive features |
-| Security breach | No payload in logs, M-of-N keys | Rotate keys, quarantine |
-| Node integrity failure | Attestation, redundancy | Operator-only nodes |
+| App store removal risk | Purpose-bound permissions | Disable sensitive features |
+| Security breach | No payload in logs, key rotation | Quarantine + rotate keys |
 
-### 12.3 War Game Scenarios (Top 20)
-
-1. Narrow cohort attempt
-2. Repeated-query linkage attack
-3. Export bypass attempt
-4. Requester chargeback storm
-5. DS device farm
-6. Compromised phone exfil
-7. Node lies about useful work
-8. Ledger replication degraded
-9. TTL expiry fails
-10. Payload in logs
-11. Minor in sensitive category
-12. PSP high-risk flag
-13. App store review challenge
-14. Regional outage
-15. Regulator inquiry
-16. Requester re-ID attempt
-17. Dispute abuse
-18. Live event 100× spike
-19. Cross-border constraints
-20. Model/policy misclassification
+### 13.3 War game scenarios (Top 20)
+1) Narrow cohort attempt
+2) Repeated-query linkage attack
+3) Export bypass attempt
+4) Chargeback storm
+5) Device farm
+6) Compromised phone exfil
+7) Node lies about useful work
+8) Ledger replication degraded
+9) TTL expiry fails
+10) Payload in logs
+11) Minor in sensitive category
+12) PSP high-risk flag
+13) App store review challenge
+14) Regional outage
+15) Regulator inquiry
+16) Re-ID attempt
+17) Dispute abuse
+18) Live event 100× spike
+19) Cross-border constraints
+20) Policy misclassification
 
 ---
 
-## 13. PRICING & ECONOMICS
+## 14. Pricing & Economics
 
-### 13.1 Uniform Compensation Model
-
+### 14.1 Uniform compensation model
 - Same unit price for all DS in same request
 - Local Currency Display (LCD) via platform FX reference
-- YC equivalent shown optionally
 
-### 13.2 Unit Types
-
+### 14.2 Unit types
 | Type | Description |
 |------|-------------|
 | UNIT-PERSON | Pay once per DS identity |
 | UNIT-DEVICE | Pay per verified distinct device |
 | UNIT-LOCATION | Pay per verified sensor location |
-| UNIT-TIME | Pay per minute/hour of participation |
+| UNIT-TIME | Pay per minute/hour participation |
 | UNIT-OBSERVATION | Pay per verified observation/event |
 
-### 13.3 Escrow Semantics
-
-- Requester must pre-fund before delivery
-- Amount = (maxParticipants × unitPrice × maxUnits) + platformFee
-- Settlement atomic with delivery
+### 14.3 Escrow semantics
+- Requester pre-funds before delivery
+- Settlement atomic with delivery receipts
 - Failed deliveries trigger automatic refund
-
-### 13.4 Market Integrity
-
-- Auction mode for price discovery
-- Category rate cards as guidance
-- Anti-manipulation detection
-- Floors/ceilings for protected categories
 
 ---
 
-## 14. DATA MODEL
+## 15. Data Model
 
-### 14.1 Core Entities
-
+### 15.1 Core entities (control plane)
 ```typescript
 interface DSProfile {
   id: UUID;
   pseudonym: string;
   status: 'active' | 'suspended' | 'banned';
   accountType: 'DS-IND' | 'DS-COMP' | 'DS-ORG';
+}
+
+interface RequesterProfile {
+  id: UUID;
+  tier: 'CR' | 'VO1' | 'VO2' | 'VO3';
+  orgName: string;
+  reputationScore: number;
+  publicKeys: string[];
+}
+
+interface Request {
+  id: UUID;
+  requesterId: UUID;
+  purpose: string;
+  criteria: string; // ODX criteria language
+  unitType: 'UNIT-PERSON'|'UNIT-DEVICE'|'UNIT-LOCATION'|'UNIT-TIME'|'UNIT-OBSERVATION';
+  unitPrice: Decimal;
+  maxParticipants: number;
+  budget: Decimal;
+  escrowId: UUID;
+  riskClass: 'A'|'B'|'C';
+  status: 'draft'|'screening'|'active'|'completed'|'cancelled';
 }
 
 interface ConsentContract {
@@ -543,30 +586,60 @@ interface ConsentContract {
   purposeHash: string;
   durationStart: DateTime;
   durationEnd: DateTime;
-  status: 'active' | 'revoked' | 'expired';
+  status: 'active'|'revoked'|'expired';
   compensationAmount: Decimal;
-}
-
-interface Request {
-  id: UUID;
-  requesterId: UUID;
-  purpose: string;
-  unitType: 'survey' | 'data_access' | 'participation';
-  unitPrice: Decimal;
-  maxParticipants: number;
-  budget: Decimal;
-  escrowId: UUID;
-  status: 'draft' | 'screening' | 'active' | 'completed';
 }
 
 interface AuditReceipt {
   id: UUID;
-  eventType: EventType;
+  eventType: string;
   timestamp: DateTime;
   actorId: UUID;
   detailsHash: string;
-  merkleProof?: MerkleProof;
+  merkleProof?: any;
   previousReceiptHash: string;
+}
+
+interface EscrowRecord {
+  id: UUID;
+  requestId: UUID;
+  amount: Decimal;
+  status: 'prefunded'|'released'|'refunded'|'disputed';
+  releaseConditions: string[];
+}
+```
+
+### 15.2 Device-local entities (node)
+```typescript
+interface CanonicalEvent {
+  eventId: UUID;
+  source: string;
+  recordType: string;
+  tStart: DateTime;
+  tEnd: DateTime;
+  coarseGeoCell?: string;
+  derivedFeatures: Record<string, any>;
+  labels: string[];
+  rawRef: string; // vault pointer
+  ontologyVersion: string;
+  schemaVersion: string;
+}
+
+interface ODXEntry {
+  facetKey: string;
+  timeBucket: string;
+  geoBucket?: string;
+  count: number;
+  quality: 'framework'|'oauth'|'import';
+  privacyFloor?: { kMin: number };
+}
+
+interface QueryPlan {
+  planId: UUID;
+  planVersion: string;
+  steps: any[];
+  limits: { maxRuntimeMs: number; maxEvents: number; maxOutputKb: number };
+  requesterSignature: string;
 }
 
 interface TimeCapsule {
@@ -574,47 +647,115 @@ interface TimeCapsule {
   requestId: UUID;
   consentContractId: UUID;
   fieldManifestHash: string;
-  encryptedPayload: EncryptedBlob;
+  encryptedPayload: string;
   ttl: DateTime;
-  status: 'created' | 'delivered' | 'expired' | 'deleted';
+  status: 'created'|'delivered'|'expired'|'deleted';
 }
 ```
 
 ---
 
-## 15. INTEGRATION REQUIREMENTS
+## 16. Integration Requirements
 
 | Integration | Purpose |
-|-------------|---------|
-| OAuth providers | Apple/Google/Facebook login |
-| Payment Gateway | Requester payments |
-| Payout Provider | DS payouts |
-| Stripe | International payments |
-| KYB/KYC vendors | Verification |
+|------------|---------|
+| OAuth providers | Apple/Google login |
+| Payment gateway | Requester payments |
+| Payout provider | DS payouts |
 | Notification services | Email/SMS/push |
-| HSM/KMS | Key management |
+| KMS/HSM | Control-plane key management |
 | SIEM | Security monitoring |
+| Connectors | Health frameworks, OAuth services, export imports |
+| P2P | WebRTC/libp2p transport with signaling |
 
 ---
 
-## 16. COMPLIANCE REQUIREMENTS
+## 17. Compliance Requirements
 
-### 16.1 Design Targets
-
-| Regulation | Status |
-|------------|--------|
+### 17.1 Design targets
+| Regulation/Standard | Status |
+|---------------------|--------|
 | GDPR | Consent, portability, deletion, purpose limitation |
 | CCPA | Access, deletion, sale/sharing transparency |
-| ISO 27001/27701 | Policies, controls mapping, audit trails |
-| Regional Data Protection | Exceeds requirements |
-| COPPA | Parental consent for under-13 |
+| COPPA | Under-13 parental consent; strict defaults |
+| ISO 27001/27701 | Controls mapping; audit trails |
 
-### 16.2 Data Localization
+### 17.2 Data localization
+Support regional storage options for control-plane data and receipts where required.
 
-Support regional storage options where required.
+---
+
+# Appendix A — ODX Ontology v1
+(See: complete namespaces, sensitivity classes, and examples.)
+
+**Namespaces:** `domain.*`, `time.*`, `geo.*`, `quality.*`, `privacy.*`, `device.*`  
+**Rules:** no raw payload, no precise GPS by default, k-min enforcement for sensitive cohorts.
+
+---
+
+# Appendix B — ODX Criteria Language v1
+A request eligibility language that references ODX facets only.
+
+**Design goals:** safe, non-targeting, statically checkable.
+
+**Core operators:**
+- `HAS(label)`
+- `COUNT(label, window) >= n`
+- `IN_TIME(window)`
+- `IN_GEO(zone)` (evaluated locally, zone IDs are hashed/policy-defined)
+- `AND/OR/NOT` with bounded nesting
+
+**Hard restrictions:**
+- No exact address criteria.
+- Sensitivity gating: health + minors + fine geo/time ⇒ forced downscope or reject.
+
+---
+
+# Appendix C — QueryPlan DSL v1
+A constrained, deterministic plan executed locally.
+
+**Allowlisted ops:** `SELECT`, `FILTER`, `PROJECT`, `BUCKETIZE`, `AGGREGATE`, `REDACT`, `EXPORT`, `PACK_CAPSULE`.
+
+**Forbidden:** network ops, arbitrary code, raw payload export unless explicitly enabled by policy + DS.
+
+---
+
+# Appendix D — Clean-Room Output Schemas v1
+Standard derived schemas to reduce risky custom exports.
+
+1) `yachaq.weekly_habits.v1`
+2) `yachaq.sleep_adherence.v1`
+3) `yachaq.activity_summary.v1`
+4) `yachaq.mobility_summary.v1`
+5) `yachaq.media_listening_patterns.v1`
+
+Each schema defines:
+- required fields (aggregated/bucketed)
+- sensitivity class
+- default k-min
+- default time/geo coarsening
+
+---
+
+# Appendix E — AuditReceipts & KIPUX Provenance
+
+**AuditReceipt:** append-only events with hashes; batched into Merkle trees.
+
+**KIPUX model:**
+- **Knot:** a receipt node
+- **Cord:** a thread of related receipts (e.g., a transaction)
+- **Weave:** provenance graph across cords
+
+**Required receipts (minimum):**
+- RequestCreated, RequestStamped, RequestPublished
+- DeviceMatched (local), ContractSigned (DS), ContractCountersigned (Requester)
+- PlanValidated, PlanExecuted
+- CapsuleCreated, CapsuleDelivered
+- EscrowReleased, PayoutSettled
+- TTLExpired, CryptoShredCommitted (where used)
+- DeviceQuarantined (if applicable)
 
 ---
 
 **END OF SRS**
 
-*This document consolidates all system requirements specifications for YACHAQ.*

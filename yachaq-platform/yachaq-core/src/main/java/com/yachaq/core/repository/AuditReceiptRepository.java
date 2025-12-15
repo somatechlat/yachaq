@@ -64,6 +64,11 @@ public interface AuditReceiptRepository extends JpaRepository<AuditReceipt, UUID
      */
     @Query("SELECT r.receiptHash FROM AuditReceipt r WHERE r.receiptHash IS NOT NULL ORDER BY r.timestamp DESC LIMIT 1")
     Optional<String> findMostRecentReceiptHash();
+
+    /**
+     * Find a receipt by its hash (for verifying chain links).
+     */
+    Optional<AuditReceipt> findByReceiptHash(String receiptHash);
     
     /**
      * Find receipts without Merkle proof (for batching).

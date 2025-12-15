@@ -7,16 +7,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Policy rule for screening engine.
- * Rules are loaded from database and evaluated against requests.
- * 
- * Validates: Requirements 6.1, 6.2
+ * Policy rule definition for screening.
  */
 @Entity
 @Table(name = "policy_rules", indexes = {
-    @Index(name = "idx_policy_rule_type", columnList = "rule_type"),
-    @Index(name = "idx_policy_rule_category", columnList = "rule_category"),
-    @Index(name = "idx_policy_rule_active", columnList = "is_active")
+        @Index(name = "idx_policy_rule_active", columnList = "is_active"),
+        @Index(name = "idx_policy_rule_category", columnList = "rule_category")
 })
 public class PolicyRule {
 
@@ -46,10 +42,6 @@ public class PolicyRule {
     private String ruleCategory;
 
     @NotNull
-    @Column(name = "rule_expression", nullable = false, columnDefinition = "TEXT")
-    private String ruleExpression;
-
-    @NotNull
     @Column(nullable = false)
     private Integer severity;
 
@@ -67,26 +59,19 @@ public class PolicyRule {
 
     protected PolicyRule() {}
 
-    // Getters
-    public UUID getId() { return id; }
     public String getRuleCode() { return ruleCode; }
-    public String getRuleName() { return ruleName; }
-    public String getRuleDescription() { return ruleDescription; }
     public RuleType getRuleType() { return ruleType; }
-    public String getRuleCategory() { return ruleCategory; }
-    public String getRuleExpression() { return ruleExpression; }
     public Integer getSeverity() { return severity; }
     public Boolean getIsActive() { return isActive; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public String getRuleCategory() { return ruleCategory; }
 
     public boolean isBlocking() {
         return ruleType == RuleType.BLOCKING;
     }
 
     public enum RuleType {
-        BLOCKING,   // Causes immediate rejection
-        WARNING,    // Adds to risk score, may trigger manual review
-        INFO        // Informational only
+        BLOCKING,
+        WARNING,
+        INFO
     }
 }

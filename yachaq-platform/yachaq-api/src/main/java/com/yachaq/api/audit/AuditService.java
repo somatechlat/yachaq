@@ -128,13 +128,15 @@ public class AuditService {
         String recomputedHash = computeReceiptHash(receipt);
         boolean hashValid = recomputedHash.equals(receipt.getReceiptHash());
         
-        // Verify chain link if not genesis
-        boolean chainValid = true;
+        // Verify the immediate chain link (current.previousReceiptHash must exist as a receiptHash).
+        boolean chainValid;
         String previousHash = receipt.getPreviousReceiptHash();
-        if (!"GENESIS".equals(previousHash)) {
-            // Find the previous receipt by hash
-            chainValid = auditRepository.findMostRecentReceiptHash()
-                    .map(h -> true) // Simplified - in production would verify full chain
+        if ("GENESIS".equals(previousHash)) {
+            chainValid = true;
+        } else {
+            chainValid = auditRepository.findByReceiptHash(previousHash)
+                    .map(prev -> prev.getTimestamp().isBefore(receipt.getTimestamp())
+                            || prev.getTimestamp().equals(receipt.getTimestamp()))
                     .orElse(false);
         }
         

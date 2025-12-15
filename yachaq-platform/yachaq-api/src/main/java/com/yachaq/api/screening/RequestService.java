@@ -14,16 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Request management service.
- * Handles request lifecycle from creation to completion.
- * 
- * Validates: Requirements 5.1, 5.2
- */
 @Service
 public class RequestService {
 
@@ -40,9 +33,6 @@ public class RequestService {
         this.auditService = auditService;
     }
 
-    /**
-     * Creates a new request in DRAFT status.
-     */
     @Transactional
     public RequestDto createRequest(CreateRequestCommand command) {
         validateCreateCommand(command);
@@ -62,7 +52,6 @@ public class RequestService {
 
         Request saved = requestRepository.save(request);
 
-        // Generate audit receipt
         auditService.appendReceipt(
                 AuditReceipt.EventType.REQUEST_CREATED,
                 command.requesterId(),
@@ -75,128 +64,72 @@ public class RequestService {
         return toDto(saved);
     }
 
-    /**
-     * Submits a request for screening.
-     */
     @Transactional
     public ScreeningService.ScreeningResultDto submitForScreening(UUID requestId, UUID requesterId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ScreeningService.RequestNotFoundException("Request not found: " + requestId));
 
-        // Verify ownership
         if (!request.getRequesterId().equals(requesterId)) {
             throw new UnauthorizedRequestAccessException("Not authorized to submit this request");
         }
 
-        // Submit for screening
         request.submitForScreening();
         requestRepository.save(request);
 
-        // Run screening
         return screeningService.screenRequest(requestId);
     }
 
-    /**
-     * Gets a request by ID.
-     */
     public RequestDto getRequest(UUID requestId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ScreeningService.RequestNotFoundException("Request not found: " + requestId));
         return toDto(request);
     }
 
-    /**
-     * Gets requests for a requester.
-     */
     public Page<RequestDto> getRequestsByRequester(UUID requesterId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return requestRepository.findByRequesterIdOrderByCreatedAtDesc(requesterId, pageable)
                 .map(this::toDto);
     }
 
-    /**
-     * Gets requests by status.
-     */
     public Page<RequestDto> getRequestsByStatus(RequestStatus status, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return requestRepository.findByStatusOrderByCreatedAtDesc(status, pageable)
                 .map(this::toDto);
     }
 
-    /**
-     * Cancels a request.
-     */
     @Transactional
     public RequestDto cancelRequest(UUID requestId, UUID requesterId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ScreeningService.RequestNotFoundException("Request not found: " + requestId));
 
-        // Verify ownership
         if (!request.getRequesterId().equals(requesterId)) {
             throw new UnauthorizedRequestAccessException("Not authorized to cancel this request");
         }
 
         request.cancel();
         Request saved = requestRepository.save(request);
-
         return toDto(saved);
     }
 
-    /**
-     * Links escrow to a request.
-     */
     @Transactional
     public RequestDto linkEscrow(UUID requestId, UUID escrowId) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ScreeningService.RequestNotFoundException("Request not found: " + requestId));
-
         request.linkEscrow(escrowId);
-        Request saved = requestRepository.save(request);
-
-        return toDto(saved);
-    }
-
-    /**
-     * Gets active requests in current time range.
-     */
-    public List<RequestDto> getActiveRequests() {
-        return requestRepository.findActiveRequestsInRange(Instant.now())
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return toDto(requestRepository.save(request));
     }
 
     private void validateCreateCommand(CreateRequestCommand command) {
-        if (command.requesterId() == null) {
-            throw new InvalidRequestException("Requester ID is required");
-        }
-        if (command.purpose() == null || command.purpose().isBlank()) {
-            throw new InvalidRequestException("Purpose is required");
-        }
-        if (command.scope() == null || command.scope().isEmpty()) {
-            throw new InvalidRequestException("Scope is required");
-        }
-        if (command.eligibilityCriteria() == null) {
-            throw new InvalidRequestException("Eligibility criteria is required");
-        }
-        if (command.durationStart() == null || command.durationEnd() == null) {
-            throw new InvalidRequestException("Duration start and end are required");
-        }
-        if (command.durationEnd().isBefore(command.durationStart())) {
-            throw new InvalidRequestException("Duration end must be after start");
-        }
-        if (command.unitType() == null) {
-            throw new InvalidRequestException("Unit type is required");
-        }
-        if (command.unitPrice() == null || command.unitPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidRequestException("Unit price must be positive");
-        }
-        if (command.maxParticipants() == null || command.maxParticipants() <= 0) {
-            throw new InvalidRequestException("Max participants must be positive");
-        }
-        if (command.budget() == null || command.budget().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidRequestException("Budget must be positive");
-        }
+        if (command.requesterId() == null) throw new InvalidRequestException("Requester ID is required");
+        if (command.purpose() == null || command.purpose().isBlank()) throw new InvalidRequestException("Purpose is required");
+        if (command.scope() == null || command.scope().isEmpty()) throw new InvalidRequestException("Scope is required");
+        if (command.eligibilityCriteria() == null) throw new InvalidRequestException("Eligibility criteria is required");
+        if (command.durationStart() == null || command.durationEnd() == null) throw new InvalidRequestException("Duration start and end are required");
+        if (command.durationEnd().isBefore(command.durationStart())) throw new InvalidRequestException("Duration end must be after start");
+        if (command.unitType() == null) throw new InvalidRequestException("Unit type is required");
+        if (command.unitPrice() == null || command.unitPrice().compareTo(BigDecimal.ZERO) <= 0) throw new InvalidRequestException("Unit price must be positive");
+        if (command.maxParticipants() == null || command.maxParticipants() <= 0) throw new InvalidRequestException("Max participants must be positive");
+        if (command.budget() == null || command.budget().compareTo(BigDecimal.ZERO) <= 0) throw new InvalidRequestException("Budget must be positive");
     }
 
     private String computeDetailsHash(Request request) {
@@ -229,7 +162,6 @@ public class RequestService {
         );
     }
 
-    // DTOs
     public record CreateRequestCommand(
             UUID requesterId,
             String purpose,
@@ -261,7 +193,6 @@ public class RequestService {
             Instant submittedAt
     ) {}
 
-    // Exceptions
     public static class InvalidRequestException extends RuntimeException {
         public InvalidRequestException(String message) { super(message); }
     }

@@ -123,8 +123,11 @@ public class AuditReceipt {
         PROFILE_UPDATED,
         REQUEST_CREATED,
         REQUEST_SCREENED,
+        ESCROW_CREATED,
         ESCROW_FUNDED,
-        ESCROW_RELEASED
+        ESCROW_LOCKED,
+        ESCROW_RELEASED,
+        ESCROW_REFUNDED
     }
 
     public enum ActorType {

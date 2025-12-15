@@ -5251,3 +5251,1362 @@ YACHAQ is a consent-first personal data and knowledge sovereignty infrastructure
 3. WHEN DS requests deletion THEN the System SHALL execute within regulatory timeframe
 4. WHEN data breach occurs THEN the System SHALL notify authorities per regional requirements
 5. WHEN cross-border transfer occurs THEN the System SHALL ensure consent covers international processing
+
+
+---
+
+## Phone-as-Node P2P Architecture Requirements
+
+### Requirement 302: Node Kernel and Lifecycle Management
+
+**User Story:** As a Data Sovereign, I want my phone to act as a secure data node, so that my data never leaves my device without my explicit consent.
+
+#### Acceptance Criteria
+
+1. WHEN the Node Runtime starts THEN the System SHALL execute boot sequence: key init → vault mount → ODX load → connectors init → background scheduler
+2. WHEN running compute jobs THEN the System SHALL enforce constraints: battery level, charging status, thermal state, and network type
+3. WHEN modules communicate THEN the System SHALL route all events through a stable internal event bus
+4. WHEN any module attempts network egress THEN the System SHALL route through Network Gate for policy enforcement
+5. IF a module attempts to exfiltrate raw payloads THEN the System SHALL block the operation and log the attempt
+
+---
+
+### Requirement 303: Device Key Management and Identity
+
+**User Story:** As a Data Sovereign, I want cryptographic keys managed securely on my device, so that my identity and data are protected.
+
+#### Acceptance Criteria
+
+1. WHEN the device enrolls THEN the System SHALL generate a long-term root keypair using hardware-backed storage when available
+2. WHEN deriving identities THEN the System SHALL create: Node DID (local identity), pairwise DIDs per requester (anti-correlation), and session keys for P2P transfers
+3. WHEN rotating network identifiers THEN the System SHALL rotate daily or weekly to reduce tracking
+4. WHEN rotating pairwise identifiers THEN the System SHALL rotate per relationship or per contract
+5. IF private key export is attempted THEN the System SHALL require explicit user action and display security warnings
+6. WHEN signing payloads THEN the System SHALL use the appropriate key from the KeyRing based on context
+
+---
+
+### Requirement 304: Permissions and Consent Firewall
+
+**User Story:** As a Data Sovereign, I want unified permission control, so that I understand exactly what data is accessible and to whom.
+
+#### Acceptance Criteria
+
+1. WHEN requesting OS permissions THEN the System SHALL request just-in-time only for enabled features
+2. WHEN enforcing YACHAQ permissions THEN the System SHALL check: per connector, per label family, per resolution, per requester, and per QueryPlan
+3. WHEN displaying consent THEN the System SHALL present plain-language summaries at 8th-grade reading level
+4. WHEN signing contracts THEN the System SHALL include contract ID, nonce, and expiry for replay protection
+5. IF a "single giant switch" is offered THEN the System SHALL display detailed breakdown of what it enables
+
+---
+
+### Requirement 305: Connector Framework
+
+**User Story:** As a Data Sovereign, I want to connect my data sources through official channels, so that my data is acquired safely and with my permission.
+
+#### Acceptance Criteria
+
+1. WHEN implementing connectors THEN the System SHALL support three types: Framework (OS APIs), OAuth (user-authorized APIs), and Import (user-provided exports)
+2. WHEN acquiring data THEN the System SHALL NOT use scraping, keylogging, screen reading, or bypassing other apps
+3. WHEN a connector authorizes THEN the System SHALL use official OAuth/OS permission flows
+4. WHEN syncing data THEN the System SHALL support incremental sync with cursor-based pagination
+5. WHEN a connector fails THEN the System SHALL implement rate-limit backoff and retry logic
+
+---
+
+### Requirement 306: Data Source Connectors - Health Platforms
+
+**User Story:** As a Data Sovereign, I want to connect my health data from official platforms, so that I can share health insights with my consent.
+
+#### Acceptance Criteria
+
+1. WHEN connecting Apple Health THEN the System SHALL use HealthKit with per-data-type authorization
+2. WHEN connecting Android Health Connect THEN the System SHALL use Health Connect API with granular read permissions
+3. WHEN importing health data THEN the System SHALL normalize to canonical event model with: workouts, sleep, heart rate, activity, and vitals
+4. WHEN labeling health data THEN the System SHALL use ODX facets: health.sleep, health.hr, health.workout.*, health.vitals.*
+5. WHEN health data is sensitive THEN the System SHALL apply Class A data handling with strict defaults
+
+---
+
+### Requirement 307: Data Source Connectors - Productivity and Media
+
+**User Story:** As a Data Sovereign, I want to connect my productivity and media accounts, so that I can share relevant insights with my consent.
+
+#### Acceptance Criteria
+
+1. WHEN connecting Google Account THEN the System SHALL support Google Takeout imports for: calendar, photos, drive, and location history
+2. WHEN connecting Apple iCloud THEN the System SHALL support user-initiated archive imports for: photos, notes, and documents
+3. WHEN connecting Spotify THEN the System SHALL use OAuth with scopes for: recently played, top tracks/artists, and playlists
+4. WHEN connecting Strava THEN the System SHALL use OAuth with activity lifecycle webhooks
+5. WHEN labeling media data THEN the System SHALL use ODX facets: media.audio.genre, media.audio.mood_cluster, media.photos.scenes
+
+---
+
+### Requirement 308: Data Source Connectors - Communications
+
+**User Story:** As a Data Sovereign, I want to import my communication data through official export tools, so that I can share communication patterns with my consent.
+
+#### Acceptance Criteria
+
+1. WHEN importing WhatsApp data THEN the System SHALL use in-app Export Chat feature (manual, user-controlled)
+2. WHEN importing Telegram data THEN the System SHALL use Telegram Export Tool (JSON/HTML format)
+3. WHEN importing Instagram data THEN the System SHALL use Meta Accounts Center export flow
+4. WHEN labeling communication data THEN the System SHALL use ODX facets: comms.chat.relationship_type, comms.chat.topic_clusters, comms.chat.activity_level
+5. WHEN processing communication content THEN the System SHALL extract only patterns and cluster IDs, never raw message text in ODX
+
+---
+
+### Requirement 309: Data Source Connectors - Mobility
+
+**User Story:** As a Data Sovereign, I want to import my mobility data, so that I can share travel patterns with my consent.
+
+#### Acceptance Criteria
+
+1. WHEN importing Uber data THEN the System SHALL use "Request a copy of your personal data" feature
+2. WHEN labeling mobility data THEN the System SHALL use ODX facets: mobility.trip_count, mobility.route_cells, mobility.spend_bucket, mobility.time_of_day_pattern
+3. WHEN processing location data THEN the System SHALL use coarse geo cells (privacy-safe resolution) by default
+4. WHEN precise location is requested THEN the System SHALL require explicit opt-in with clear warnings
+5. WHEN storing mobility data THEN the System SHALL apply Class B data handling with features-first approach
+
+---
+
+### Requirement 310: Import Connectors and File Processing
+
+**User Story:** As a Data Sovereign, I want to safely import my data export files, so that I can include historical data in my profile.
+
+#### Acceptance Criteria
+
+1. WHEN selecting import files THEN the System SHALL use local file selection with checksum verification
+2. WHEN processing imports THEN the System SHALL parse supported export schemas (ZIP, JSON, HTML, CSV)
+3. WHEN storing imported data THEN the System SHALL immediately encrypt raw payloads in vault and emit canonical events
+4. WHEN displaying import warnings THEN the System SHALL clearly state that imports may contain highly sensitive data
+5. WHEN parsing import files THEN the System SHALL enforce safe memory limits and streaming for large files
+
+---
+
+### Requirement 311: Local Vault (Encrypted Storage)
+
+**User Story:** As a Data Sovereign, I want my raw data encrypted on my device, so that it is protected even if my device is compromised.
+
+#### Acceptance Criteria
+
+1. WHEN storing data THEN the System SHALL use envelope encryption with per-object keys wrapped by vault master key
+2. WHEN referencing raw data THEN the System SHALL provide only raw_ref handles, never direct access
+3. WHEN TTL expires THEN the System SHALL support secure delete via crypto-shred
+4. WHEN accessing vault THEN the System SHALL enforce access control allowing only authorized modules (feature extractor, plan VM)
+5. WHEN vault keys rotate THEN the System SHALL re-wrap existing objects without data loss
+
+---
+
+### Requirement 312: Data Normalizer
+
+**User Story:** As a Data Sovereign, I want my data normalized to a standard format, so that it can be consistently processed and labeled.
+
+#### Acceptance Criteria
+
+1. WHEN normalizing data THEN the System SHALL convert to canonical event model: event_id, source, record_type, t_start, t_end, coarse_geo_cell, derived_features, labels[], raw_ref, ontology_version, schema_version
+2. WHEN mapping sources THEN the System SHALL use deterministic mapping per source type
+3. WHEN schema evolves THEN the System SHALL support versioned schema evolution with migration paths
+4. WHEN testing normalization THEN the System SHALL use golden-file tests ensuring same input produces same canonical output
+5. WHEN normalization fails THEN the System SHALL quarantine the record and log the error without data loss
+
+---
+
+### Requirement 313: Feature Extractor
+
+**User Story:** As a Data Sovereign, I want privacy-preserving features extracted from my data, so that only safe summaries are discoverable.
+
+#### Acceptance Criteria
+
+1. WHEN extracting features THEN the System SHALL compute: time buckets, durations, counts, distance buckets, topic/mood/scene cluster IDs
+2. WHEN storing features THEN the System SHALL NOT store raw text in ODX
+3. WHEN processing media THEN the System SHALL NOT store faces or biometrics in ODX
+4. WHEN processing location THEN the System SHALL use coarse geo by default unless user explicitly opts in with warnings
+5. WHEN testing extraction THEN the System SHALL run leakage tests ensuring extractor never emits raw content to ODX
+
+---
+
+### Requirement 314: Label Engine
+
+**User Story:** As a Data Sovereign, I want my data labeled with a consistent ontology, so that it can be matched to relevant requests.
+
+#### Acceptance Criteria
+
+1. WHEN labeling data THEN the System SHALL use namespaced facets: domain.*, time.*, geo.*, quality.*, privacy.*
+2. WHEN applying labels THEN the System SHALL support rule-based labels (fast, explainable) and optional on-device ML clustering
+3. WHEN ontology evolves THEN the System SHALL maintain backward compatibility with migration tables
+4. WHEN migrating labels THEN the System SHALL map old labels to new via versioned migration
+5. WHEN testing labels THEN the System SHALL run ontology regression tests and migration correctness tests
+
+---
+
+### Requirement 315: ODX Builder (On-Device Discovery Index)
+
+**User Story:** As a Data Sovereign, I want a privacy-safe index for discovery, so that requesters can find me without seeing my raw data.
+
+#### Acceptance Criteria
+
+1. WHEN building ODX THEN the System SHALL include only: facet_key, time_bucket, geo_bucket (coarse), count/aggregate, quality, privacy_floor
+2. WHEN storing ODX THEN the System SHALL NOT include: raw payload, reversible text, precise GPS, or personal identifiers
+3. WHEN aggregating THEN the System SHALL apply privacy floors (e.g., k-min threshold) when risk of re-identification exists
+4. WHEN validating ODX THEN the System SHALL run "ODX safety scanner" asserting forbidden fields are absent
+5. WHEN querying ODX THEN the System SHALL support local-only queries for eligibility matching
+
+---
+
+### Requirement 316: Change Tracker (Label/Feature Deltas)
+
+**User Story:** As a Data Sovereign, I want my data changes tracked without storing content, so that I can share "habit patterns" safely.
+
+#### Acceptance Criteria
+
+1. WHEN tracking changes THEN the System SHALL use append-only delta log with prev_hash → new_hash
+2. WHEN storing deltas THEN the System SHALL persist only label deltas and numeric feature deltas, never raw content
+3. WHEN summarizing changes THEN the System SHALL provide "habit for a week" summaries from delta log
+4. WHEN verifying integrity THEN the System SHALL detect tampering via hash chain verification
+5. WHEN exporting deltas THEN the System SHALL support audit export without raw data exposure
+
+---
+
+### Requirement 317: Request Inbox and Local Matcher
+
+**User Story:** As a Data Sovereign, I want to receive and evaluate requests locally, so that my eligibility is determined without exposing my data.
+
+#### Acceptance Criteria
+
+1. WHEN receiving requests THEN the System SHALL verify request signatures and policy stamps
+2. WHEN evaluating eligibility THEN the System SHALL use ODX and local geo evaluation only
+3. WHEN matching location criteria THEN the System SHALL evaluate locally ("Am I in polygon X?") without sending location to server
+4. WHEN displaying offers THEN the System SHALL show only to eligible users after local match
+5. WHEN protecting against replay THEN the System SHALL validate request nonces and expiry
+
+---
+
+### Requirement 318: Broadcast Matching (Mode A)
+
+**User Story:** As a Data Sovereign, I want requests broadcast to all nodes, so that my location is never tracked by the platform.
+
+#### Acceptance Criteria
+
+1. WHEN using Mode A matching THEN the Coordinator SHALL send approved requests to all online nodes (or broad region)
+2. WHEN receiving broadcast THEN the Node SHALL check locally: eligibility criteria AND location match
+3. WHEN eligible THEN the Node SHALL show offer to user; when not eligible THEN the Node SHALL silently discard
+4. WHEN operating Mode A THEN the Coordinator SHALL NOT query or store device locations
+5. WHEN scaling is needed THEN the System SHALL accept higher bandwidth cost for stronger privacy
+
+---
+
+### Requirement 319: Rotating Geo Topics Matching (Mode B)
+
+**User Story:** As a Data Sovereign, I want optional geo-topic matching for scale, so that the platform can grow while limiting location exposure.
+
+#### Acceptance Criteria
+
+1. WHEN using Mode B matching THEN the Node SHALL compute coarse cell_id locally
+2. WHEN subscribing to topics THEN the Node SHALL use daily rotating topic identifiers to reduce trackability
+3. WHEN publishing requests THEN the Coordinator SHALL publish to topic sets covering target areas
+4. WHEN rotating topics THEN the System SHALL change topic identifiers frequently enough to prevent long-term tracking
+5. WHEN choosing modes THEN the System SHALL default to Mode A and enable Mode B only when scale requires it
+
+---
+
+### Requirement 320: ConsentContract Builder
+
+**User Story:** As a Data Sovereign, I want to build and sign consent contracts, so that my agreement is cryptographically binding.
+
+#### Acceptance Criteria
+
+1. WHEN building contracts THEN the System SHALL include: labels, time window, output mode, identity requirement, price, escrow references, TTL policy
+2. WHEN signing contracts THEN the User SHALL sign first, then Requester countersigns
+3. WHEN verifying contracts THEN the System SHALL validate both signatures before execution
+4. WHEN storing contracts THEN the System SHALL ensure immutability after both parties sign
+5. WHEN testing contracts THEN the System SHALL verify serialization, signature correctness, and immutability
+
+---
+
+### Requirement 321: QueryPlan VM (Sandbox)
+
+**User Story:** As a Data Sovereign, I want query plans executed in a secure sandbox, so that requesters cannot access more than I consented to.
+
+#### Acceptance Criteria
+
+1. WHEN executing plans THEN the System SHALL allow only operators from allowlist: filter, bucketize, aggregate, hash, redact
+2. WHEN running in sandbox THEN the System SHALL NOT allow arbitrary code execution
+3. WHEN executing THEN the System SHALL NOT allow network egress during execution
+4. WHEN consuming resources THEN the System SHALL enforce limits: CPU, memory, time, battery
+5. WHEN previewing plans THEN the System SHALL show human-readable outputs and privacy impact before user accepts
+
+---
+
+### Requirement 322: Time Capsule Packager
+
+**User Story:** As a Data Sovereign, I want my data packaged in encrypted, time-limited capsules, so that access is controlled and temporary.
+
+#### Acceptance Criteria
+
+1. WHEN creating capsules THEN the System SHALL include: header (plan id, TTL, schema, summary), encrypted payload, proofs (signatures, capsule hash, contract id)
+2. WHEN encrypting THEN the System SHALL encrypt payload to requester public keys only
+3. WHEN enforcing TTL THEN the System SHALL support crypto-shred for TTL keys where applicable
+4. WHEN verifying capsules THEN the System SHALL validate integrity via hash and signatures
+5. WHEN TTL expires THEN the System SHALL destroy decryption keys and delete storage
+
+---
+
+### Requirement 323: P2P Transport Layer
+
+**User Story:** As a Data Sovereign, I want my data transferred directly to requesters peer-to-peer, so that YACHAQ servers never see my data.
+
+#### Acceptance Criteria
+
+1. WHEN establishing connections THEN the System SHALL use secure handshake with mutual authentication and forward secrecy
+2. WHEN traversing NAT THEN the System SHALL use relays that only carry ciphertext and store nothing
+3. WHEN transferring data THEN the System SHALL support resumable transfer with chunk hashes for integrity
+4. WHEN completing transfer THEN the System SHALL receive acknowledgment from requester
+5. WHEN testing P2P THEN the System SHALL simulate MITM attacks, relay-only scenarios, and packet loss/resume
+
+---
+
+### Requirement 324: Network Gate (Outbound Policy)
+
+**User Story:** As a Data Sovereign, I want all network traffic controlled, so that raw data never leaves my device without my consent.
+
+#### Acceptance Criteria
+
+1. WHEN any module sends network requests THEN the System SHALL route through Network Gate
+2. WHEN classifying payloads THEN the System SHALL distinguish: metadata-only vs ciphertext capsule
+3. WHEN destination is unknown THEN the System SHALL block by default
+4. WHEN allowing destinations THEN the System SHALL require explicit domain + purpose registration
+5. WHEN testing THEN the System SHALL run "no raw egress" proofs ensuring forbidden payload types never leave
+
+---
+
+### Requirement 325: On-Device Audit Log
+
+**User Story:** As a Data Sovereign, I want a complete audit trail on my device, so that I can verify all data operations.
+
+#### Acceptance Criteria
+
+1. WHEN logging events THEN the System SHALL use hash-chained append-only log
+2. WHEN recording events THEN the System SHALL include: permissions granted/revoked, requests received, contracts signed, plans executed, capsule hashes created, P2P transfers completed, TTL crypto-shred events
+3. WHEN displaying audit THEN the System SHALL show events in plain language
+4. WHEN exporting audit THEN the System SHALL support export for external audits
+5. WHEN verifying audit THEN the System SHALL detect tampering via hash chain validation
+
+---
+
+### Requirement 326: Safety and Sensitivity Gate
+
+**User Story:** As a Data Sovereign, I want automatic protection for sensitive data combinations, so that high-risk sharing requires extra safeguards.
+
+#### Acceptance Criteria
+
+1. WHEN detecting sensitive combinations THEN the System SHALL flag: health + minors + location
+2. WHEN sensitive data is involved THEN the System SHALL force defaults: clean-room outputs, coarse geo/time, higher privacy floors
+3. WHEN displaying consent THEN the System SHALL show additional warnings for sensitive combinations
+4. WHEN requester tier is insufficient THEN the System SHALL block sensitive data requests
+5. WHEN testing THEN the System SHALL verify policy enforcement for all flagged scenarios
+
+---
+
+### Requirement 327: Coordinator Request Management
+
+**User Story:** As a Platform Operator, I want to manage requests without accessing raw data, so that the platform remains privacy-preserving.
+
+#### Acceptance Criteria
+
+1. WHEN storing requests THEN the Coordinator SHALL store only: request definitions, requester identity, policy approvals, pricing
+2. WHEN publishing requests THEN the Coordinator SHALL NOT include or query: node locations, health flags, private labels, raw data
+3. WHEN validating requests THEN the Coordinator SHALL enforce schema validation before acceptance
+4. WHEN stamping requests THEN the Coordinator SHALL attach policy_stamp signed by coordinator policy key
+5. WHEN delivering requests THEN the Coordinator SHALL use broadcast (Mode A) or rotating topics (Mode B)
+
+---
+
+### Requirement 328: Coordinator Policy Review
+
+**User Story:** As a Platform Operator, I want to review and moderate requests, so that harmful requests never reach users.
+
+#### Acceptance Criteria
+
+1. WHEN reviewing requests THEN the System SHALL enforce allowed criteria in ODX terms only
+2. WHEN detecting high-risk requests THEN the System SHALL block or downscope automatically
+3. WHEN applying safeguards THEN the System SHALL enforce: privacy floors, output constraints, requester tier requirements
+4. WHEN approving requests THEN the System SHALL generate policy_stamp with approval timestamp and policy version
+5. WHEN rejecting requests THEN the System SHALL provide reason codes and remediation hints
+
+---
+
+### Requirement 329: Coordinator Rendezvous and Signaling
+
+**User Story:** As a Platform Operator, I want to help P2P peers connect, so that data can transfer directly without platform involvement.
+
+#### Acceptance Criteria
+
+1. WHEN providing rendezvous THEN the System SHALL issue ephemeral session tokens only
+2. WHEN relaying traffic THEN the System SHALL carry only ciphertext and store nothing
+3. WHEN storing signaling data THEN the System SHALL enforce short TTL and no stable identifiers
+4. WHEN session completes THEN the System SHALL delete all signaling metadata
+5. WHEN auditing THEN the System SHALL log only session existence, not content or participants
+
+---
+
+### Requirement 330: Platform Telemetry Minimization
+
+**User Story:** As a Data Sovereign, I want minimal platform telemetry, so that the platform cannot track my behavior.
+
+#### Acceptance Criteria
+
+1. WHEN collecting telemetry THEN the System SHALL allow only: rotating presence token, app/protocol version, capability bitmap (non-sensitive), P2P reachability (relay needed yes/no), rate-limit counters
+2. WHEN storing telemetry THEN the System SHALL NOT store: precise location, health condition flags, contact graphs, stable device IDs
+3. WHEN rotating tokens THEN the System SHALL change presence tokens daily or weekly
+4. WHEN capability bitmap changes THEN the System SHALL NOT include disease labels or sensitive attributes
+5. WHEN auditing telemetry THEN the System SHALL provide transparency report of collected metrics
+
+---
+
+### Requirement 331: DID/VC Identity Wallet
+
+**User Story:** As a Data Sovereign, I want to manage my identity credentials locally, so that I control when and how my identity is revealed.
+
+#### Acceptance Criteria
+
+1. WHEN operating by default THEN the System SHALL use anonymous/pseudonymous mode
+2. WHEN identity reveal is required THEN the System SHALL present verifiable credentials to requester via P2P
+3. WHEN storing credentials THEN the System SHALL store validation state locally: issued_at, expires_at, status checks
+4. WHEN revealing identity THEN the System SHALL send documents/credentials directly to requester, never via YACHAQ servers
+5. WHEN credentials expire THEN the System SHALL prompt user to refresh before next reveal
+
+---
+
+### Requirement 332: Requester-Side Identity Verification
+
+**User Story:** As a Requester, I want to verify user identity directly, so that identity infrastructure stays off the platform.
+
+#### Acceptance Criteria
+
+1. WHEN verifying identity THEN the Requester SHALL run verification locally or via their own verifier
+2. WHEN receiving credentials THEN the Requester SHALL handle storage and compliance per their policies
+3. WHEN using open standards THEN the System SHALL support OpenID4VP for credential presentation
+4. WHEN issuing credentials THEN the System SHALL support OpenID4VCI for issuance flows
+5. WHEN verification fails THEN the Requester SHALL handle rejection without platform involvement
+
+---
+
+### Requirement 333: Verifiability and Reproducible Builds
+
+**User Story:** As an Auditor, I want to verify the platform never touches user data, so that privacy claims are provable.
+
+#### Acceptance Criteria
+
+1. WHEN building releases THEN the System SHALL use reproducible builds with published binary hashes
+2. WHEN auditing code THEN the System SHALL demonstrate no server-side ingestion endpoints for raw data exist
+3. WHEN exporting audit logs THEN the System SHALL provide hash-chained logs exportable for external verification
+4. WHEN displaying network activity THEN the System SHALL show every outbound connection purpose and payload class
+5. WHEN third-party audits occur THEN the System SHALL provide full source access and threat model documentation
+
+---
+
+### Requirement 334: Data Classification and Handling
+
+**User Story:** As a Data Sovereign, I want my data classified by sensitivity, so that appropriate protections are applied automatically.
+
+#### Acceptance Criteria
+
+1. WHEN classifying Class A data (health/minors/comms content/precise location) THEN the System SHALL apply strict defaults and clean-room outputs
+2. WHEN classifying Class B data (behavior/mobility summaries) THEN the System SHALL favor features-first approach
+3. WHEN classifying Class C data (operational telemetry) THEN the System SHALL apply minimization
+4. WHEN handling Class A data THEN the System SHALL require explicit opt-in with enhanced warnings
+5. WHEN mixing classifications THEN the System SHALL apply the strictest classification to the combination
+
+---
+
+### Requirement 335: Full Share Mode Safety
+
+**User Story:** As a Data Sovereign, I want "full share" to be safe, so that even maximum sharing doesn't expose me to spyware-like behavior.
+
+#### Acceptance Criteria
+
+1. WHEN enabling full share THEN the System SHALL share only eligible on-device sources (health, sensors, exports, activity summaries)
+2. WHEN full share is enabled THEN the System SHALL NOT enable raw interception of other apps' private messages/calls
+3. WHEN audio is included THEN the System SHALL require explicit session-based capture (user presses record) or on-device feature extraction with immediate discard
+4. WHEN displaying full share THEN the System SHALL show detailed breakdown of what is included
+5. WHEN testing full share THEN the System SHALL verify no spyware-like behavior is possible
+
+
+
+---
+
+## Phone-as-Node P2P Architecture Requirements
+
+### Requirement 302: Node Runtime Kernel
+
+**User Story:** As a Data Sovereign, I want my phone to act as a secure data node, so that my data never leaves my device unless I explicitly consent.
+
+#### Acceptance Criteria
+
+1. WHEN the Node Runtime starts THEN the System SHALL execute boot sequence: key init → vault mount → ODX load → connectors init → background scheduler
+2. WHEN running compute jobs THEN the System SHALL enforce constraints for battery, charging state, thermal limits, and network availability
+3. WHEN modules communicate THEN the System SHALL route all events through a stable internal event bus
+4. WHEN any module attempts network egress THEN the System SHALL route all calls through the Network Gate
+5. IF any module attempts to exfiltrate raw payloads THEN the System SHALL block the operation and log the attempt
+
+---
+
+### Requirement 303: Key Management and Device Identity
+
+**User Story:** As a Data Sovereign, I want cryptographic keys managed securely on my device, so that my identity is protected and I can prove ownership of my data.
+
+#### Acceptance Criteria
+
+1. WHEN the device enrolls THEN the System SHALL generate a long-term root keypair using hardware-backed storage when available
+2. WHEN deriving identities THEN the System SHALL create a Node DID for local identity and pairwise DIDs per requester for anti-correlation
+3. WHEN establishing P2P sessions THEN the System SHALL derive unique session keys for each transfer
+4. WHEN network identifiers are used THEN the System SHALL rotate them daily or weekly to prevent tracking
+5. WHEN pairwise identifiers are used THEN the System SHALL rotate them per relationship or per contract
+6. WHEN private keys are accessed THEN the System SHALL ensure root private keys never leave secure storage
+7. IF a user attempts to export private material THEN the System SHALL require explicit user action and confirmation
+
+---
+
+### Requirement 304: Permissions and Consent Firewall
+
+**User Story:** As a Data Sovereign, I want unified permission control combining OS and YACHAQ permissions, so that I have complete control over what data is accessed.
+
+#### Acceptance Criteria
+
+1. WHEN a feature requires OS permissions THEN the System SHALL request permissions just-in-time with clear explanations
+2. WHEN enforcing YACHAQ permissions THEN the System SHALL check: per connector, per label family, per resolution, per requester, and per QueryPlan
+3. WHEN presenting consent THEN the System SHALL display plain-language summaries of what will be shared
+4. WHEN a user grants consent THEN the System SHALL ensure consent is replay-safe with contract ID, nonce, and expiry
+5. IF a permission is missing THEN the System SHALL fail closed and block the operation
+6. WHEN offering presets THEN the System SHALL provide Minimal, Standard, and Full options with visible and editable toggles
+
+---
+
+### Requirement 305: Connector Framework
+
+**User Story:** As a Data Sovereign, I want to connect various data sources through a standard interface, so that I can share data from multiple apps and services.
+
+#### Acceptance Criteria
+
+1. WHEN defining connectors THEN the System SHALL support three types: Framework (OS APIs), OAuth (user-authorized APIs), and Import (user-provided exports)
+2. WHEN a connector is initialized THEN the System SHALL expose capabilities including data types and label families
+3. WHEN authorizing a connector THEN the System SHALL execute the appropriate OAuth or OS permission flow
+4. WHEN syncing data THEN the System SHALL return normalized raw items or pointers using incremental cursors
+5. WHEN a connector encounters rate limits THEN the System SHALL implement backoff and retry logic
+6. WHEN acquiring data THEN the System SHALL NOT use scraping, keylogging, screen reading, or bypassing other apps
+
+---
+
+### Requirement 306: Data Importers
+
+**User Story:** As a Data Sovereign, I want to import my data exports from various services, so that I can include historical data in my profile.
+
+#### Acceptance Criteria
+
+1. WHEN importing files THEN the System SHALL support: Google Takeout, Telegram export, WhatsApp export, Uber data, iCloud archive
+2. WHEN processing imports THEN the System SHALL perform local file selection, checksum verification, and malware scanning where feasible
+3. WHEN parsing imports THEN the System SHALL handle supported export schemas and immediately store raw payloads in the vault
+4. WHEN imports complete THEN the System SHALL emit canonical events for the normalizer
+5. WHEN handling imports THEN the System SHALL never upload import files to any server
+6. WHEN presenting import options THEN the System SHALL display clear warnings that imports may contain highly sensitive data
+
+---
+
+### Requirement 307: Local Vault (Encrypted Storage)
+
+**User Story:** As a Data Sovereign, I want my raw data encrypted on my device, so that even if my device is compromised, my data remains protected.
+
+#### Acceptance Criteria
+
+1. WHEN storing data THEN the System SHALL use envelope encryption with per-object keys wrapped by vault master key
+2. WHEN accessing stored data THEN the System SHALL provide only raw_ref handles, never direct access to encrypted blobs
+3. WHEN TTL expires THEN the System SHALL support secure delete and crypto-shred operations
+4. WHEN data is at rest THEN the System SHALL ensure all vault contents are encrypted
+5. WHEN modules access raw payloads THEN the System SHALL restrict access to only allowed modules (feature extractor, plan VM)
+6. WHEN key rotation occurs THEN the System SHALL re-encrypt affected objects without data loss
+
+---
+
+### Requirement 308: Data Normalizer
+
+**User Story:** As a Data Sovereign, I want my data from different sources normalized into a consistent format, so that it can be processed uniformly.
+
+#### Acceptance Criteria
+
+1. WHEN normalizing data THEN the System SHALL convert all sources into the canonical event model with: event_id, source, record_type, t_start, t_end, coarse_geo_cell, derived_features, labels, raw_ref, ontology_version, schema_version
+2. WHEN mapping sources THEN the System SHALL apply deterministic mapping per source type
+3. WHEN schema evolves THEN the System SHALL support versioned schema evolution with migrations
+4. WHEN the same input is processed THEN the System SHALL produce identical canonical output (determinism)
+5. WHEN validating normalization THEN the System SHALL pass golden-file tests comparing input to expected output
+
+---
+
+### Requirement 309: Feature Extractor
+
+**User Story:** As a Data Sovereign, I want privacy-preserving features computed from my data, so that I can share insights without exposing raw content.
+
+#### Acceptance Criteria
+
+1. WHEN extracting features THEN the System SHALL compute: time buckets, durations, counts, distance buckets, topic/mood/scene cluster IDs
+2. WHEN storing features THEN the System SHALL ensure no raw text is stored in ODX
+3. WHEN processing media THEN the System SHALL ensure no faces or biometrics are stored in ODX
+4. WHEN handling location THEN the System SHALL default to coarse geo unless user explicitly opts in with warnings
+5. WHEN extracting features THEN the System SHALL include quality flags distinguishing verified sources from user imports
+6. WHEN testing extraction THEN the System SHALL pass leakage tests ensuring no raw content appears in ODX
+
+---
+
+### Requirement 310: Label Engine
+
+**User Story:** As a Data Sovereign, I want my data labeled with a consistent ontology, so that requesters can discover relevant data without seeing raw content.
+
+#### Acceptance Criteria
+
+1. WHEN labeling events THEN the System SHALL apply rule-based labels that are explainable
+2. WHEN ML clustering is used THEN the System SHALL output only cluster IDs, never raw content
+3. WHEN managing ontology THEN the System SHALL maintain versions and support migrations
+4. WHEN defining labels THEN the System SHALL use namespaced facets: domain.*, time.*, geo.*, quality.*, privacy.*
+5. WHEN ontology evolves THEN the System SHALL ensure backward compatibility with migration tables mapping old labels to new
+6. WHEN testing labels THEN the System SHALL pass ontology regression tests and migration correctness tests
+
+---
+
+### Requirement 311: ODX Builder (On-Device Discovery Index)
+
+**User Story:** As a Data Sovereign, I want a privacy-safe index built on my device, so that requesters can discover if I have relevant data without seeing the data itself.
+
+#### Acceptance Criteria
+
+1. WHEN building ODX entries THEN the System SHALL include only: facet_key, time_bucket, geo_bucket (coarse), count/aggregate, quality, privacy_floor
+2. WHEN storing ODX THEN the System SHALL ensure no raw payload, no reversible text, and no precise GPS
+3. WHEN aggregating THEN the System SHALL apply privacy floors when risk of re-identification exists
+4. WHEN querying ODX THEN the System SHALL support local queries against criteria
+5. WHEN validating ODX THEN the System SHALL pass ODX safety scanner tests asserting forbidden fields are absent
+6. WHEN updating ODX THEN the System SHALL support incremental upsert operations
+
+---
+
+### Requirement 312: Change Tracker
+
+**User Story:** As a Data Sovereign, I want to track how my data patterns change over time, so that I can share habit summaries without exposing content.
+
+#### Acceptance Criteria
+
+1. WHEN tracking changes THEN the System SHALL maintain an append-only delta log with prev_hash → new_hash
+2. WHEN storing deltas THEN the System SHALL persist only label deltas and numeric feature deltas, never raw content
+3. WHEN summarizing THEN the System SHALL provide "habit for a week" style summaries from delta data
+4. WHEN validating integrity THEN the System SHALL detect tampering through hash chain verification
+5. WHEN exporting deltas THEN the System SHALL support audit-friendly export formats
+
+---
+
+### Requirement 313: Request Inbox and Local Matcher
+
+**User Story:** As a Data Sovereign, I want to receive and evaluate requests locally on my device, so that my eligibility is determined without exposing my data to servers.
+
+#### Acceptance Criteria
+
+1. WHEN receiving requests THEN the System SHALL verify request signatures and policy stamps
+2. WHEN evaluating eligibility THEN the System SHALL use ODX and local geo evaluation only
+3. WHEN a match is found THEN the System SHALL show the offer to the user with full details
+4. WHEN matching by location THEN the System SHALL support Mode A (broadcast) and Mode B (rotating coarse geo topics)
+5. WHEN validating requests THEN the System SHALL enforce replay protection with nonces and expiry
+6. WHEN testing matching THEN the System SHALL verify signature verification and local-geo-only evaluation
+
+---
+
+### Requirement 314: ConsentContract Builder
+
+**User Story:** As a Data Sovereign, I want to generate and sign consent contracts on my device, so that I have cryptographic proof of what I agreed to share.
+
+#### Acceptance Criteria
+
+1. WHEN building contracts THEN the System SHALL create drafts from request + user-selected scope
+2. WHEN specifying contracts THEN the System SHALL include: labels, time window, output mode, identity requirement, price, escrow references, TTL policy
+3. WHEN signing contracts THEN the System SHALL require user signature followed by requester countersignature
+4. WHEN verifying contracts THEN the System SHALL validate all signatures and ensure immutability after signing
+5. WHEN serializing contracts THEN the System SHALL use a deterministic format for consistent hashing
+6. WHEN testing contracts THEN the System SHALL verify serialization, signature correctness, and immutability
+
+---
+
+### Requirement 315: QueryPlan VM (Sandbox)
+
+**User Story:** As a Data Sovereign, I want query plans executed in a secure sandbox on my device, so that requesters cannot access more data than I consented to.
+
+#### Acceptance Criteria
+
+1. WHEN executing plans THEN the System SHALL allow only operators from the allowlist: SELECT, FILTER, PROJECT, BUCKETIZE, AGGREGATE, CLUSTER_REF, REDACT, SAMPLE, EXPORT, PACK_CAPSULE
+2. WHEN running the VM THEN the System SHALL prohibit arbitrary code execution
+3. WHEN executing plans THEN the System SHALL block all network egress during execution
+4. WHEN running plans THEN the System SHALL enforce resource limits for CPU, memory, time, and battery
+5. WHEN previewing plans THEN the System SHALL show human-readable outputs and privacy impact before execution
+6. WHEN validating plans THEN the System SHALL reject plans with disallowed operators, scope violations, or output mode conflicts
+7. WHEN testing the VM THEN the System SHALL pass fuzzing tests, sandbox escape attempts, and resource exhaustion tests
+
+---
+
+### Requirement 316: Time Capsule Packager
+
+**User Story:** As a Data Sovereign, I want my data outputs packaged into encrypted, time-limited capsules, so that requesters can only access data within agreed terms.
+
+#### Acceptance Criteria
+
+1. WHEN creating capsules THEN the System SHALL include header with: plan_id, TTL, schema, summary
+2. WHEN encrypting capsules THEN the System SHALL encrypt payload to requester public keys only
+3. WHEN attaching proofs THEN the System SHALL include: signatures, capsule hash, contract_id
+4. WHEN TTL expires THEN the System SHALL support crypto-shred for TTL keys where applicable
+5. WHEN verifying capsules THEN the System SHALL validate integrity and reject tampered capsules
+6. WHEN testing capsules THEN the System SHALL verify integrity checks, wrong-key failures, and TTL lifecycle
+
+---
+
+### Requirement 317: P2P Transport
+
+**User Story:** As a Data Sovereign, I want to transfer data capsules directly to requesters peer-to-peer, so that my data never passes through YACHAQ servers.
+
+#### Acceptance Criteria
+
+1. WHEN establishing connections THEN the System SHALL perform secure handshake with mutual authentication and forward secrecy
+2. WHEN traversing NAT THEN the System SHALL use relays that carry only ciphertext, never plaintext
+3. WHEN transferring data THEN the System SHALL support resumable transfers with chunk hashes
+4. WHEN completing transfers THEN the System SHALL require acknowledgment receipts from requesters
+5. WHEN testing P2P THEN the System SHALL pass MITM simulations, relay-only scenarios, and packet loss/resume tests
+6. WHEN selecting protocols THEN the System SHALL support WebRTC DataChannel or libp2p
+
+---
+
+### Requirement 318: Network Gate
+
+**User Story:** As a Data Sovereign, I want all network traffic from my device controlled by a policy gate, so that raw data can never be accidentally transmitted.
+
+#### Acceptance Criteria
+
+1. WHEN any module makes network calls THEN the System SHALL route all calls through the Network Gate
+2. WHEN classifying payloads THEN the System SHALL distinguish metadata-only from ciphertext capsule traffic
+3. WHEN unknown destinations are requested THEN the System SHALL block by default
+4. WHEN allowing destinations THEN the System SHALL require explicit domain and purpose registration
+5. WHEN testing the gate THEN the System SHALL pass "no raw egress" proofs ensuring forbidden payload types never leave
+6. IF raw payload egress is attempted THEN the System SHALL block and log the attempt
+
+---
+
+### Requirement 319: On-Device Audit Log
+
+**User Story:** As a Data Sovereign, I want a tamper-evident audit log on my device, so that I can prove exactly what happened with my data.
+
+#### Acceptance Criteria
+
+1. WHEN logging events THEN the System SHALL maintain a hash-chained append-only log
+2. WHEN recording events THEN the System SHALL log: permissions granted/revoked, requests received, contracts signed, plans executed, capsule hashes created, P2P transfers completed, TTL crypto-shred events
+3. WHEN displaying logs THEN the System SHALL show events in plain language through a transparency UI
+4. WHEN exporting logs THEN the System SHALL support audit-friendly export formats
+5. WHEN validating logs THEN the System SHALL detect tampering through hash chain verification
+6. WHEN testing logs THEN the System SHALL verify tamper detection and export correctness
+
+---
+
+### Requirement 320: Safety and Sensitivity Gate
+
+**User Story:** As a Data Sovereign, I want automatic protection for high-risk data combinations, so that sensitive data is protected by default.
+
+#### Acceptance Criteria
+
+1. WHEN evaluating requests THEN the System SHALL detect high-risk combinations like health + minors + location
+2. WHEN high-risk is detected THEN the System SHALL force defaults: clean-room outputs, coarse geo/time, higher privacy floors
+3. WHEN high-risk requests are received THEN the System SHALL display additional consent warnings
+4. WHEN requester vetting is insufficient THEN the System SHALL optionally require stronger requester tiers
+5. WHEN testing sensitivity THEN the System SHALL verify policy enforcement for all flagged scenarios
+
+---
+
+### Requirement 321: Coordinator Request Management
+
+**User Story:** As a Platform Operator, I want to manage requests without ever receiving raw user data, so that the platform maintains privacy by architecture.
+
+#### Acceptance Criteria
+
+1. WHEN storing requests THEN the System SHALL store only: request definitions, requester identity, policy approvals, pricing
+2. WHEN validating requests THEN the System SHALL enforce request schema validation
+3. WHEN approving requests THEN the System SHALL attach policy stamps after review
+4. WHEN publishing requests THEN the System SHALL distribute to nodes via broadcast or topic-based delivery
+5. WHEN handling data THEN the System SHALL never store: node locations, health flags, private labels, or raw data
+6. IF raw data ingestion is attempted THEN the System SHALL reject and log the attempt
+
+---
+
+### Requirement 322: Coordinator Policy Review and Moderation
+
+**User Story:** As a Platform Operator, I want to review and moderate requests before they reach users, so that harmful requests are blocked.
+
+#### Acceptance Criteria
+
+1. WHEN reviewing requests THEN the System SHALL enforce allowed criteria expressed in ODX terms only
+2. WHEN high-risk requests are detected THEN the System SHALL block or downscope them
+3. WHEN approving requests THEN the System SHALL apply required safeguards including privacy floors and output constraints
+4. WHEN stamping requests THEN the System SHALL sign policy_stamp with coordinator policy key
+5. WHEN requests fail review THEN the System SHALL provide reason codes and remediation hints
+
+---
+
+### Requirement 323: Coordinator Rendezvous and Signaling
+
+**User Story:** As a Platform Operator, I want to help P2P peers find each other without storing their data, so that transfers can occur directly.
+
+#### Acceptance Criteria
+
+1. WHEN peers need to connect THEN the System SHALL provide ephemeral session tokens
+2. WHEN relaying is needed THEN the System SHALL operate relay service that carries only ciphertext
+3. WHEN storing signaling data THEN the System SHALL enforce short TTL on all metadata
+4. WHEN identifying peers THEN the System SHALL use no stable identifiers
+5. WHEN storing session info THEN the System SHALL store only ephemeral session data with automatic expiry
+
+---
+
+### Requirement 324: Coordinator Reputation and Abuse Prevention
+
+**User Story:** As a Platform Operator, I want to prevent fraud and abuse without accessing user data, so that the platform remains trustworthy.
+
+#### Acceptance Criteria
+
+1. WHEN requesters submit requests THEN the System SHALL enforce rate limits
+2. WHEN tracking reputation THEN the System SHALL compute scores based on dispute outcomes
+3. WHEN aggregating abuse signals THEN the System SHALL collect node-side signals without identity
+4. WHEN detecting sybil attacks THEN the System SHALL analyze patterns without accessing raw data
+5. WHEN enforcing limits THEN the System SHALL apply stricter limits to lower-reputation requesters
+
+---
+
+### Requirement 325: Escrow Orchestrator
+
+**User Story:** As a Data Sovereign, I want payment held in escrow until delivery is verified, so that I am guaranteed payment for my data.
+
+#### Acceptance Criteria
+
+1. WHEN holding payment THEN the System SHALL require: contract signed by both parties, capsule hash receipt submitted
+2. WHEN verifying delivery THEN the System SHALL optionally confirm capsule integrity through verifier
+3. WHEN releasing payment THEN the System SHALL release per contract terms
+4. WHEN processing escrow THEN the System SHALL never require raw data
+5. WHEN disputes arise THEN the System SHALL support partial release and refund workflows
+
+---
+
+### Requirement 326: DID/VC Wallet
+
+**User Story:** As a Data Sovereign, I want to store and manage my identity credentials on my device, so that I can selectively reveal my identity when required.
+
+#### Acceptance Criteria
+
+1. WHEN operating by default THEN the System SHALL support anonymous mode
+2. WHEN identity reveal is required THEN the System SHALL present verifiable credentials to requester
+3. WHEN storing credentials THEN the System SHALL maintain validation state locally with issued_at, expires_at, and status checks
+4. WHEN transmitting credentials THEN the System SHALL send documents/credentials P2P to requester, never via YACHAQ servers
+5. WHEN verifying credentials THEN the System SHALL support W3C Verifiable Credentials and DID standards
+6. WHEN exchanging credentials THEN the System SHALL support OpenID4VP and OpenID4VCI protocols
+
+---
+
+### Requirement 327: Requester-Side Verification
+
+**User Story:** As a Requester, I want to verify user credentials directly, so that identity infrastructure stays off the YACHAQ platform.
+
+#### Acceptance Criteria
+
+1. WHEN verifying credentials THEN the Requester SHALL perform verification directly
+2. WHEN storing verified data THEN the Requester SHALL handle storage and compliance
+3. WHEN receiving credentials THEN the Requester SHALL receive them via P2P transfer
+4. WHEN validating credentials THEN the Requester SHALL use standard VC verification libraries
+5. WHEN YACHAQ is involved THEN the System SHALL not store or process identity documents
+
+---
+
+### Requirement 328: ODX Label Ontology
+
+**User Story:** As a Platform Operator, I want a standardized label ontology, so that requests and data can be matched consistently across all nodes.
+
+#### Acceptance Criteria
+
+1. WHEN defining labels THEN the System SHALL use namespaced facets: domain.*, time.*, geo.*, quality.*, privacy.*, device.*
+2. WHEN classifying sensitivity THEN the System SHALL assign Class A (strict), Class B (moderate), or Class C (low) to each label family
+3. WHEN handling Class A labels THEN the System SHALL default to clean-room outputs, k-floor enforcement, and coarse geo/time
+4. WHEN versioning ontology THEN the System SHALL use semantic versioning with migration tables for backward compatibility
+5. WHEN mapping events to labels THEN the System SHALL apply deterministic mapping rules per source type
+6. WHEN deprecating labels THEN the System SHALL maintain migration tables with old_label → new_label mappings
+
+---
+
+### Requirement 329: QueryPlan DSL
+
+**User Story:** As a Platform Operator, I want a well-defined query plan language, so that data extraction is constrained and auditable.
+
+#### Acceptance Criteria
+
+1. WHEN defining plans THEN the System SHALL use canonical JSON format with: plan_version, plan_id, request_id, declared_ops, inputs, steps, outputs, limits, signatures
+2. WHEN specifying inputs THEN the System SHALL include: time_window, label_filters, geo_policy, privacy settings
+3. WHEN defining steps THEN the System SHALL use allowed operators: SELECT, FILTER, PROJECT, BUCKETIZE, AGGREGATE, CLUSTER_REF, REDACT, SAMPLE, EXPORT, PACK_CAPSULE
+4. WHEN enforcing determinism THEN the System SHALL ensure same vault + same contract + same plan version produces identical output
+5. WHEN validating plans THEN the System SHALL reject plans with forbidden operators, scope violations, or output conflicts
+6. WHEN signing plans THEN the System SHALL require requester signature on all plans
+
+---
+
+### Requirement 330: iOS Permission Mapping
+
+**User Story:** As a Data Sovereign on iOS, I want YACHAQ permissions mapped to iOS capabilities, so that I understand what system access is required.
+
+#### Acceptance Criteria
+
+1. WHEN accessing health data THEN the System SHALL request HealthKit authorization mapped to scope.health.read.*
+2. WHEN accessing motion data THEN the System SHALL request Motion & Fitness permission mapped to scope.activity.read.*
+3. WHEN accessing location THEN the System SHALL request Location When-In-Use mapped to scope.mobility.location.coarse
+4. WHEN accessing photos THEN the System SHALL request Photos access mapped to scope.media.photos.metadata
+5. WHEN accessing microphone THEN the System SHALL request Microphone permission mapped to scope.media.audio.session_features for explicit sessions only
+6. WHEN importing files THEN the System SHALL use File picker mapped to scope.import.*
+7. WHEN accessing comms THEN the System SHALL require user exports since iOS does not allow reading other apps' messages
+
+---
+
+### Requirement 331: Android Permission Mapping
+
+**User Story:** As a Data Sovereign on Android, I want YACHAQ permissions mapped to Android capabilities, so that I understand what system access is required.
+
+#### Acceptance Criteria
+
+1. WHEN accessing health data THEN the System SHALL request Health Connect permissions mapped to scope.health.read.*
+2. WHEN accessing activity data THEN the System SHALL request ACTIVITY_RECOGNITION mapped to scope.activity.read.*
+3. WHEN accessing location THEN the System SHALL request ACCESS_COARSE_LOCATION mapped to scope.mobility.location.coarse
+4. WHEN accessing photos THEN the System SHALL request READ_MEDIA_IMAGES/VIDEO mapped to scope.media.photos.metadata
+5. WHEN accessing microphone THEN the System SHALL request RECORD_AUDIO mapped to scope.media.audio.session_features for sessions only
+6. WHEN importing files THEN the System SHALL use Storage Access Framework mapped to scope.import.*
+7. WHEN accessing Bluetooth THEN the System SHALL request BLUETOOTH_CONNECT mapped to scope.device.sensor.wearables
+
+---
+
+### Requirement 332: Operational Telemetry Constraints
+
+**User Story:** As a Data Sovereign, I want strict limits on what telemetry the platform collects, so that my privacy is protected even in operational data.
+
+#### Acceptance Criteria
+
+1. WHEN collecting telemetry THEN the System SHALL allow only: rotating presence token, app/protocol version, capability bitmap, P2P reachability, rate-limit counters
+2. WHEN handling telemetry THEN the System SHALL forbid: precise location, health condition flags, contact graphs, stable device IDs
+3. WHEN storing telemetry THEN the System SHALL use rotating identifiers that change daily/weekly
+4. WHEN transmitting telemetry THEN the System SHALL minimize data to operational necessity only
+5. WHEN auditing telemetry THEN the System SHALL provide transparency reports on collected metrics
+
+---
+
+### Requirement 333: Security Controls - Crypto and Identity
+
+**User Story:** As a Security Auditor, I want comprehensive cryptographic controls, so that the system is resistant to identity and key compromise.
+
+#### Acceptance Criteria
+
+1. WHEN storing keys THEN the System SHALL use hardware-backed storage where available
+2. WHEN identifying nodes THEN the System SHALL use pairwise DIDs and rotating network identifiers
+3. WHEN authenticating THEN the System SHALL sign requests, contracts, plans, and capsules
+4. WHEN establishing sessions THEN the System SHALL use mutual authentication with forward secrecy
+5. WHEN protecting against replay THEN the System SHALL use nonces, expiry, and transcript hashes
+6. WHEN transferring data THEN the System SHALL use chunked transfer with per-chunk hashes and final receipts
+
+---
+
+### Requirement 334: Security Controls - Plan Safety
+
+**User Story:** As a Security Auditor, I want query plan execution to be safe, so that malicious plans cannot compromise user data.
+
+#### Acceptance Criteria
+
+1. WHEN executing plans THEN the System SHALL allow only allowlisted operators
+2. WHEN running the VM THEN the System SHALL block all network egress during execution
+3. WHEN enforcing limits THEN the System SHALL apply resource limits enforced by VM
+4. WHEN validating plans THEN the System SHALL perform static validation against contract and policy before user consent
+5. WHEN testing plans THEN the System SHALL pass fuzzing and sandbox escape tests
+
+---
+
+### Requirement 335: Security Controls - Data Minimization
+
+**User Story:** As a Security Auditor, I want data minimization enforced by default, so that exposure is limited even in case of breach.
+
+#### Acceptance Criteria
+
+1. WHEN outputting data THEN the System SHALL default to clean-room outputs
+2. WHEN handling geo/time THEN the System SHALL default to coarse resolution
+3. WHEN handling sensitive cohorts THEN the System SHALL enforce k-floor for all sensitive data
+4. WHEN storing on coordinator THEN the System SHALL store only operational telemetry with rotating identifiers
+5. WHEN handling ODX THEN the System SHALL ensure no location, health flags, or ODX facets are stored on coordinator
+
+---
+
+### Requirement 336: Security Controls - Auditability
+
+**User Story:** As a Security Auditor, I want comprehensive audit capabilities, so that all actions can be verified and investigated.
+
+#### Acceptance Criteria
+
+1. WHEN logging events THEN the System SHALL maintain hash-chained audit logs
+2. WHEN displaying logs THEN the System SHALL provide user transparency UI
+3. WHEN building releases THEN the System SHALL use reproducible build pipeline with published hashes
+4. WHEN verifying builds THEN the System SHALL support third-party verification of binary-to-source matching
+5. WHEN auditing THEN the System SHALL support export of audit logs for external review
+
+---
+
+### Requirement 337: Red Team Test Requirements
+
+**User Story:** As a Security Auditor, I want comprehensive security testing, so that vulnerabilities are discovered before production.
+
+#### Acceptance Criteria
+
+1. WHEN testing ODX THEN the System SHALL run ODX Safety Scanner ensuring forbidden fields never appear
+2. WHEN testing PlanVM THEN the System SHALL run fuzzing with random and adversarial plans testing disallowed operators, oversized outputs, and sandbox escapes
+3. WHEN testing importers THEN the System SHALL fuzz parsers with ZIP bombs, JSON bombs, malformed encodings, and huge media references
+4. WHEN testing network THEN the System SHALL run egress guard tests attempting to send raw payload bytes
+5. WHEN testing replay THEN the System SHALL attempt reuse of old requests/contracts/capsules
+6. WHEN testing correlation THEN the System SHALL verify pairwise identities differ per requester and rotate properly
+7. WHEN testing high-risk THEN the System SHALL verify health + minors + neighborhood defaults to clean-room and coarse buckets
+
+---
+
+### Requirement 338: Acceptance Security Gates
+
+**User Story:** As a Platform Operator, I want security gates that must pass before shipping, so that security is enforced in the release process.
+
+#### Acceptance Criteria
+
+1. WHEN releasing THEN the System SHALL verify coordinator has no raw ingestion endpoints
+2. WHEN releasing THEN the System SHALL verify all request/contract/plan/capsule signatures validate end-to-end
+3. WHEN releasing THEN the System SHALL verify PlanVM passes fuzzing thresholds and cannot make network calls
+4. WHEN releasing THEN the System SHALL verify ODX safety scanner shows zero forbidden leaks
+5. WHEN releasing THEN the System SHALL verify reproducible build verification is documented and repeatable
+
+
+---
+
+## Provider App UI/UX Requirements
+
+### Requirement 339: Onboarding and Trust Center
+
+**User Story:** As a Data Sovereign, I want to understand exactly what YACHAQ can and cannot do with my data during onboarding, so that I can trust the platform.
+
+#### Acceptance Criteria
+
+1. WHEN a user installs the app THEN the System SHALL display the Trust Center explaining: data stays on phone, ODX-only discovery, P2P fulfillment
+2. WHEN onboarding THEN the System SHALL show a "Proof dashboard" demonstrating what the app can and cannot do
+3. WHEN creating identity THEN the System SHALL generate node identity with backup policy selection
+4. WHEN setting defaults THEN the System SHALL allow consent defaults configuration
+5. WHEN completing onboarding THEN the System SHALL make no network calls except coordinator metadata endpoints
+
+---
+
+### Requirement 340: Data Sources and Connectors Manager
+
+**User Story:** As a Data Sovereign, I want to manage my data source connections in one place, so that I can control what data is available for sharing.
+
+#### Acceptance Criteria
+
+1. WHEN viewing connectors THEN the System SHALL display per-connector enable/disable controls
+2. WHEN viewing connector status THEN the System SHALL show health, last sync time, and data-class warnings
+3. WHEN importing data THEN the System SHALL provide import workflows with file scan and size estimates
+4. WHEN a connector has issues THEN the System SHALL display clear error messages and remediation steps
+5. WHEN managing connectors THEN the System SHALL allow granular control per data type within each connector
+
+---
+
+### Requirement 341: Permissions Console
+
+**User Story:** As a Data Sovereign, I want a single place to see and manage all my permissions, so that I have complete visibility and control.
+
+#### Acceptance Criteria
+
+1. WHEN viewing permissions THEN the System SHALL display OS permissions, granted YACHAQ scopes, and per-request exceptions in one view
+2. WHEN configuring permissions THEN the System SHALL offer presets (Minimal/Standard/Full) with full advanced toggles
+3. WHEN a permission changes THEN the System SHALL immediately reflect the change across all affected features
+4. WHEN viewing permissions THEN the System SHALL explain what each permission enables in plain language
+5. WHEN revoking permissions THEN the System SHALL clearly show the impact on active requests and earnings
+
+---
+
+### Requirement 342: ODX Index Inspector
+
+**User Story:** As a Data Sovereign, I want to see what labels exist on my device, so that I understand what requesters can discover about me.
+
+#### Acceptance Criteria
+
+1. WHEN viewing ODX THEN the System SHALL show labels with counts and buckets only (never raw data)
+2. WHEN a request matches THEN the System SHALL provide "Why did I match?" explanations
+3. WHEN viewing ODX THEN the System SHALL include a "What is hidden?" section explaining raw vault is never shown to coordinator
+4. WHEN browsing ODX THEN the System SHALL allow filtering by label family, time bucket, and quality
+5. WHEN viewing ODX THEN the System SHALL never display raw payload content
+
+---
+
+### Requirement 343: Marketplace Inbox
+
+**User Story:** As a Data Sovereign, I want to browse and filter available requests, so that I can find opportunities that match my preferences.
+
+#### Acceptance Criteria
+
+1. WHEN viewing inbox THEN the System SHALL display approved requests with filters for risk class, payout, and category
+2. WHEN viewing a request THEN the System SHALL show requester profile, reputation, required scopes, output mode, TTL, and identity requirement
+3. WHEN filtering requests THEN the System SHALL support multiple filter criteria simultaneously
+4. WHEN new requests arrive THEN the System SHALL notify user according to notification preferences
+5. WHEN viewing requests THEN the System SHALL clearly indicate risk class (A/B/C) with visual indicators
+
+---
+
+### Requirement 344: Offer Review and Consent Studio
+
+**User Story:** As a Data Sovereign, I want to review and customize what I share before accepting a request, so that I maintain precise control.
+
+#### Acceptance Criteria
+
+1. WHEN reviewing an offer THEN the System SHALL display Plan Preview with privacy impact meter
+2. WHEN customizing consent THEN the System SHALL provide scope editor for label families, time window, geo/time granularity, and output mode
+3. WHEN configuring identity THEN the System SHALL show explicit "Identity reveal OFF/ON" switch with default OFF
+4. WHEN adjusting scope THEN the System SHALL show how payout changes based on selections
+5. WHEN accepting THEN the System SHALL require explicit confirmation after showing final summary
+
+---
+
+### Requirement 345: Execution and Delivery Monitor
+
+**User Story:** As a Data Sovereign, I want to see the progress of data delivery, so that I know my data is being handled correctly.
+
+#### Acceptance Criteria
+
+1. WHEN executing a plan THEN the System SHALL display progress, resource usage, and transfer stats
+2. WHEN transferring data THEN the System SHALL show that only ciphertext is transmitted
+3. WHEN transfer is interrupted THEN the System SHALL provide resumability controls
+4. WHEN delivery completes THEN the System SHALL show confirmation with capsule hash
+5. WHEN errors occur THEN the System SHALL display clear error messages and retry options
+
+---
+
+### Requirement 346: Earnings and Receipts
+
+**User Story:** As a Data Sovereign, I want to track my earnings and access receipts, so that I can manage my income and taxes.
+
+#### Acceptance Criteria
+
+1. WHEN viewing earnings THEN the System SHALL display escrow state, payouts, and receipts
+2. WHEN exporting receipts THEN the System SHALL provide transaction proofs (capsule hash, contract signature) without exposing data
+3. WHEN viewing history THEN the System SHALL allow filtering by date, requester, and amount
+4. WHEN tax reporting is needed THEN the System SHALL provide exportable summaries in standard formats
+5. WHEN viewing a transaction THEN the System SHALL show complete audit trail
+
+---
+
+### Requirement 347: Emergency Controls
+
+**User Story:** As a Data Sovereign, I want emergency controls to stop all sharing instantly, so that I can protect myself if needed.
+
+#### Acceptance Criteria
+
+1. WHEN activating emergency stop THEN the System SHALL stop all sharing instantly
+2. WHEN revoking relationships THEN the System SHALL allow revoking all requester relationships at once
+3. WHEN purging data THEN the System SHALL allow vault category purging with strong warnings
+4. WHEN emergency controls are used THEN the System SHALL log the action in audit trail
+5. WHEN recovering from emergency THEN the System SHALL require explicit re-enablement of sharing
+
+---
+
+## Requester Product Requirements
+
+### Requirement 348: Requester Portal
+
+**User Story:** As a Requester, I want a portal to create and manage data requests, so that I can efficiently acquire consented data.
+
+#### Acceptance Criteria
+
+1. WHEN creating requests THEN the System SHALL provide templates for common use cases
+2. WHEN configuring requests THEN the System SHALL allow scope definition using ODX criteria, pricing, and output schemas
+3. WHEN requests are rejected THEN the System SHALL show policy rejections with required downscopes
+4. WHEN managing requests THEN the System SHALL display request status, acceptance rates, and delivery progress
+5. WHEN viewing analytics THEN the System SHALL show request performance without exposing individual user data
+
+---
+
+### Requirement 349: Requester Verification Tool
+
+**User Story:** As a Requester, I want to verify received data capsules, so that I can trust the data I receive.
+
+#### Acceptance Criteria
+
+1. WHEN receiving capsules THEN the System SHALL provide verification tool for signatures, schema validation, and hash receipts
+2. WHEN processing data THEN the System SHALL recommend clean-room processing environment
+3. WHEN verification fails THEN the System SHALL provide clear error messages and dispute options
+4. WHEN verification succeeds THEN the System SHALL record verification receipt
+5. WHEN accessing data THEN the System SHALL enforce TTL and access policy constraints
+
+---
+
+### Requirement 350: Requester Vetting Tiers
+
+**User Story:** As a Platform Operator, I want requester vetting tiers, so that trust levels match allowed request types.
+
+#### Acceptance Criteria
+
+1. WHEN onboarding requesters THEN the System SHALL assign tiers based on organization verification, abuse history, and compliance attestations
+2. WHEN tier affects requests THEN the System SHALL restrict request types based on tier level
+3. WHEN high-risk requests are submitted THEN the System SHALL require higher tiers or additional bonds
+4. WHEN tier changes THEN the System SHALL notify requester and adjust allowed request types
+5. WHEN viewing tier THEN the System SHALL show requirements for tier upgrades
+
+---
+
+### Requirement 351: Dispute Console
+
+**User Story:** As a Requester, I want to dispute issues with data delivery, so that I can resolve problems fairly.
+
+#### Acceptance Criteria
+
+1. WHEN disputing THEN the System SHALL provide evidence-based dispute flow using contract, receipts, and audit proofs
+2. WHEN resolving disputes THEN the System SHALL not require raw data exposure
+3. WHEN disputes are filed THEN the System SHALL notify all parties and hold relevant escrow
+4. WHEN disputes are resolved THEN the System SHALL release or refund escrow per decision
+5. WHEN viewing dispute history THEN the System SHALL show all disputes with outcomes
+
+---
+
+### Requirement 352: Requester SDK/API
+
+**User Story:** As a Developer, I want an SDK to programmatically create requests and verify capsules, so that I can integrate YACHAQ into my systems.
+
+#### Acceptance Criteria
+
+1. WHEN building requests THEN the SDK SHALL provide programmatic request creation
+2. WHEN verifying capsules THEN the SDK SHALL provide verification functions
+3. WHEN integrating THEN the SDK SHALL support multiple programming languages
+4. WHEN using the SDK THEN the System SHALL enforce the same policies as the portal
+5. WHEN errors occur THEN the SDK SHALL provide detailed error information
+
+---
+
+## Missing Module Requirements
+
+### Requirement 353: ODX Criteria Language
+
+**User Story:** As a Platform Operator, I want a safe query language for request eligibility, so that requests cannot be overly specific.
+
+#### Acceptance Criteria
+
+1. WHEN defining criteria THEN the System SHALL reference only allowed ODX facets
+2. WHEN validating criteria THEN the System SHALL restrict specificity (no exact addresses)
+3. WHEN applying criteria THEN the System SHALL include privacy floors
+4. WHEN parsing criteria THEN the System SHALL be statically checkable by policy service and node matcher
+5. WHEN criteria are invalid THEN the System SHALL provide clear error messages with suggestions
+
+---
+
+### Requirement 354: Clean-room Output Schema Library
+
+**User Story:** As a Platform Operator, I want a library of standard output schemas, so that requesters cannot demand raw exports.
+
+#### Acceptance Criteria
+
+1. WHEN creating requests THEN the System SHALL provide standard output schemas: weekly habits, mobility summaries, sleep/activity aggregates, adherence patterns
+2. WHEN defining schemas THEN the System SHALL assign sensitivity grades and default coarsening to each
+3. WHEN requesters select schemas THEN the System SHALL enforce schema constraints
+4. WHEN custom schemas are needed THEN the System SHALL require additional review and approval
+5. WHEN viewing schemas THEN the System SHALL show what data is included and excluded
+
+---
+
+### Requirement 355: Requester Bonds and Stakes
+
+**User Story:** As a Platform Operator, I want requester bonds for high-risk requests, so that abuse has financial consequences.
+
+#### Acceptance Criteria
+
+1. WHEN submitting high-risk requests THEN the System SHALL require refundable bonds/escrow
+2. WHEN abuse is detected THEN the System SHALL forfeit bonds per policy
+3. WHEN bonds are required THEN the System SHALL clearly communicate requirements and conditions
+4. WHEN requests complete successfully THEN the System SHALL return bonds per policy
+5. WHEN viewing bond status THEN the System SHALL show current bonds and conditions
+
+---
+
+### Requirement 356: PlanVM Safety Proofs
+
+**User Story:** As a Security Auditor, I want formal safety proofs for the PlanVM, so that I can verify execution safety.
+
+#### Acceptance Criteria
+
+1. WHEN documenting PlanVM THEN the System SHALL provide operator semantics documentation
+2. WHEN validating plans THEN the System SHALL pass static validator completeness tests
+3. WHEN testing PlanVM THEN the System SHALL pass differential tests (two implementations yield same output)
+4. WHEN updating PlanVM THEN the System SHALL maintain backward compatibility with existing plans
+5. WHEN auditing PlanVM THEN the System SHALL provide complete test coverage reports
+
+---
+
+### Requirement 357: Supply Chain and Reproducible Builds
+
+**User Story:** As a Security Auditor, I want reproducible builds and SBOM, so that I can verify the app hasn't been tampered with.
+
+#### Acceptance Criteria
+
+1. WHEN releasing THEN the System SHALL provide signed releases
+2. WHEN verifying builds THEN the System SHALL support reproducible build verification procedure
+3. WHEN documenting releases THEN the System SHALL publish SBOM (Software Bill of Materials)
+4. WHEN auditing THEN the System SHALL provide build verification documentation
+5. WHEN tampering is suspected THEN the System SHALL support independent verification
+
+---
+
+### Requirement 358: Device Trust Signals
+
+**User Story:** As a Platform Operator, I want device trust signals, so that compromised devices can be handled appropriately.
+
+#### Acceptance Criteria
+
+1. WHEN detecting root/jailbreak THEN the System SHALL provide soft warning and downgrade outputs
+2. WHEN hardware attestation is available THEN the System SHALL use optional hardware key attestation on Android
+3. WHEN trust signals change THEN the System SHALL adjust allowed operations accordingly
+4. WHEN trust is low THEN the System SHALL restrict sensitive operations
+5. WHEN viewing device status THEN the System SHALL show trust level and factors
+
+---
+
+### Requirement 359: Privacy Budgeting and Re-identification Guard
+
+**User Story:** As a Platform Operator, I want privacy budgeting, so that re-identification attacks are prevented.
+
+#### Acceptance Criteria
+
+1. WHEN enforcing privacy THEN the System SHALL enforce k-floor strictly
+2. WHEN evaluating criteria THEN the System SHALL deny overly specific cohort slicing
+3. WHEN detecting patterns THEN the System SHALL detect repeated queries aimed at deanonymization
+4. WHEN privacy budget is exhausted THEN the System SHALL block further queries
+5. WHEN viewing privacy status THEN the System SHALL show remaining budget and usage
+
+---
+
+### Requirement 360: Offline-First Queuing
+
+**User Story:** As a Data Sovereign, I want offline-first operation, so that poor connectivity doesn't lose my work.
+
+#### Acceptance Criteria
+
+1. WHEN offline THEN the System SHALL queue contracts and plans to survive restarts
+2. WHEN transferring THEN the System SHALL support P2P transfer resumability for poor networks
+3. WHEN connectivity returns THEN the System SHALL automatically process queued operations
+4. WHEN viewing queue THEN the System SHALL show pending operations and status
+5. WHEN conflicts occur THEN the System SHALL resolve with clear user notification
+
+---
+
+### Requirement 361: UX Anti-Dark-Pattern Requirements
+
+**User Story:** As a Data Sovereign, I want clear and honest UX, so that I'm never tricked into sharing more than intended.
+
+#### Acceptance Criteria
+
+1. WHEN displaying consent THEN the System SHALL ensure consent screens are clear and reversible
+2. WHEN configuring identity THEN the System SHALL default OFF for identity reveal
+3. WHEN presenting options THEN the System SHALL not use manipulative design patterns
+4. WHEN showing warnings THEN the System SHALL use clear, non-alarming language
+5. WHEN reviewing designs THEN the System SHALL pass anti-dark-pattern audit checklist

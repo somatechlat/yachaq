@@ -13,15 +13,12 @@ import java.util.UUID;
 
 /**
  * Screening result for a request.
- * Records the decision and reason codes from the screening engine.
- * 
- * Validates: Requirements 6.1, 6.2, 6.3
  */
 @Entity
 @Table(name = "screening_results", indexes = {
-    @Index(name = "idx_screening_request", columnList = "request_id"),
-    @Index(name = "idx_screening_decision", columnList = "decision"),
-    @Index(name = "idx_screening_appeal", columnList = "appeal_status")
+        @Index(name = "idx_screening_request", columnList = "request_id"),
+        @Index(name = "idx_screening_decision", columnList = "decision"),
+        @Index(name = "idx_screening_appeal", columnList = "appeal_status")
 })
 public class ScreeningResult {
 
@@ -78,9 +75,6 @@ public class ScreeningResult {
 
     protected ScreeningResult() {}
 
-    /**
-     * Creates a new screening result.
-     */
     public static ScreeningResult create(
             UUID requestId,
             ScreeningDecision decision,
@@ -89,8 +83,8 @@ public class ScreeningResult {
             Integer cohortSizeEstimate,
             String policyVersion,
             ScreenedBy screenedBy) {
-        
-        var result = new ScreeningResult();
+
+        ScreeningResult result = new ScreeningResult();
         result.requestId = requestId;
         result.decision = decision;
         result.reasonCodes = reasonCodes != null ? new ArrayList<>(reasonCodes) : new ArrayList<>();
@@ -103,54 +97,40 @@ public class ScreeningResult {
         return result;
     }
 
-    /**
-     * Submits an appeal for this screening result.
-     */
     public void submitAppeal() {
-        if (this.decision != ScreeningDecision.REJECTED) {
+        if (decision != ScreeningDecision.REJECTED) {
             throw new IllegalStateException("Can only appeal REJECTED decisions");
         }
-        if (this.appealStatus != AppealStatus.NONE) {
+        if (appealStatus != AppealStatus.NONE) {
             throw new IllegalStateException("Appeal already submitted");
         }
-        this.appealStatus = AppealStatus.PENDING;
-        this.appealSubmittedAt = Instant.now();
+        appealStatus = AppealStatus.PENDING;
+        appealSubmittedAt = Instant.now();
     }
 
-    /**
-     * Approves the appeal.
-     */
-    public void approveAppeal(UUID reviewerId) {
-        if (this.appealStatus != AppealStatus.PENDING) {
+    public void approveAppeal(UUID reviewer) {
+        if (appealStatus != AppealStatus.PENDING) {
             throw new IllegalStateException("No pending appeal to approve");
         }
-        this.appealStatus = AppealStatus.APPROVED;
-        this.appealResolvedAt = Instant.now();
-        this.reviewerId = reviewerId;
-        this.decision = ScreeningDecision.APPROVED;
+        appealStatus = AppealStatus.APPROVED;
+        appealResolvedAt = Instant.now();
+        reviewerId = reviewer;
+        decision = ScreeningDecision.APPROVED;
     }
 
-    /**
-     * Rejects the appeal.
-     */
-    public void rejectAppeal(UUID reviewerId) {
-        if (this.appealStatus != AppealStatus.PENDING) {
+    public void rejectAppeal(UUID reviewer) {
+        if (appealStatus != AppealStatus.PENDING) {
             throw new IllegalStateException("No pending appeal to reject");
         }
-        this.appealStatus = AppealStatus.REJECTED;
-        this.appealResolvedAt = Instant.now();
-        this.reviewerId = reviewerId;
+        appealStatus = AppealStatus.REJECTED;
+        appealResolvedAt = Instant.now();
+        reviewerId = reviewer;
     }
 
-    /**
-     * Checks if the cohort meets minimum size requirement (k >= 50).
-     * Property 11: Anti-Targeting Cohort Threshold
-     */
-    public boolean meetsCohortThreshold() {
-        return cohortSizeEstimate >= 50;
+    public boolean meetsCohortThreshold(int threshold) {
+        return cohortSizeEstimate >= threshold;
     }
 
-    // Getters
     public UUID getId() { return id; }
     public UUID getRequestId() { return requestId; }
     public ScreeningDecision getDecision() { return decision; }

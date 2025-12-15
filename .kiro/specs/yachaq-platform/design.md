@@ -1183,3 +1183,908 @@ interface Tenant {
 **13. Tenant Errors (4xx)**
 - `TENANT_001`: Cross-tenant access denied
 - `TENANT_002`: Rate limit exceeded
+
+
+---
+
+## Phone-as-Node P2P Architecture
+
+### System Map
+
+#### Major Subsystems
+
+1. **Node Runtime (Mobile)**: Collects/normalizes/labels locally; builds ODX; executes QueryPlans; creates Time Capsules; transfers P2P
+2. **Coordinator (Server)**: Request lifecycle + policy approval + request publication; rendezvous/signaling; never ingests raw data
+3. **Payments/Escrow (Server or External)**: Atomic payment release tied to delivery proofs
+4. **Identity (Optional, Open Standards)**: DID/VC wallet + requester-side verification (preferred)
+
+#### Trust Boundaries
+
+| Boundary | Trust Level | Description |
+|----------|-------------|-------------|
+| Device Secure Storage | Trusted | Hardware-backed keys, encrypted vault |
+| Sandboxed QueryPlan VM | Trusted | Constrained execution environment |
+| Networks | Untrusted | All network traffic assumed hostile |
+| Coordinator | Untrusted | Never receives raw data |
+| Relays | Untrusted | Carry only ciphertext |
+| Requesters | Untrusted | Receive only consented outputs |
+
+### Node Runtime Components
+
+#### 24. Node Kernel
+
+**Purpose**: Lifecycle management, scheduling, resource governance, and module wiring.
+
+**Interfaces**:
+- `Kernel.start()` - Execute boot sequence
+- `Kernel.runJob(jobType, constraints)` - Run compute job under constraints
+- `Kernel.emit(event)` - Emit event to bus
+- `Kernel.on(eventType, handler)` - Subscribe to events
+
+**Boot Sequence**:
+1. Key initialization
+2. Vault mount
+3. ODX load
+4. Connectors initialization
+5. Background scheduler start
+
+**Constraints Enforced**:
+- Battery level thresholds
+- Charging state requirements
+- Thermal limits
+- Network availability rules
+
+#### 25. Key Management Service
+
+**Purpose**: Create/hold cryptographic keys, rotate pseudonymous identities, support pairwise identifiers.
+
+**Interfaces**:
+- `KeyMgr.getNodeDID()` - Get local node DID
+- `KeyMgr.getPairwiseDID(requesterDID)` - Get/create pairwise DID for requester
+- `KeyMgr.sign(payload)` - Sign with appropriate key
+- `KeyMgr.decryptVaultKey()` - Decrypt vault master key
+
+**Data Structures**:
+```typescript
+interface KeyRing {
+  rootKeyId: string;           // Hardware-backed when available
+  nodeDID: string;             // Local identity
+  pairwiseDIDs: Map<string, string>;  // requesterDID → pairwiseDID
+  sessionKeys: Map<string, SessionKey>;
+  rotationPolicy: RotationPolicy;
+}
+
+interface DIDRegistry {
+  requesterDID: string;
+  pairwiseDID: string;
+  createdAt: DateTime;
+  lastRotated: DateTime;
+  contractCount: number;
+}
+```
+
+#### 26. Permissions & Consent Firewall
+
+**Purpose**: Unified permission model combining OS permissions + YACHAQ granular permissions + per-request consent.
+
+**Interfaces**:
+- `Consent.checkOS(permission)` - Check OS permission status
+- `Consent.checkYachaq(scope)` - Check YACHAQ permission
+- `Consent.promptContractPreview(contractDraft)` - Show consent preview
+- `Consent.signContract(contractDraft)` - Sign consent contract
+
+**Permission Layers**:
+1. OS Permissions (just-in-time)
+2. YACHAQ Permissions:
+   - Per connector (Health, Spotify, imports, etc.)
+   - Per label family (health/mobility/comms/media)
+   - Per resolution (time granularity, geo granularity)
+   - Per requester (allow/deny)
+   - Per QueryPlan execution
+
+#### 27. Connector Framework
+
+**Purpose**: Standard interface for data acquisition from various sources.
+
+**Connector Interface**:
+```typescript
+interface Connector {
+  capabilities(): ConnectorCapabilities;
+  authorize(): Promise<AuthResult>;
+  sync(sinceCursor: string): Promise<SyncResult>;
+  healthcheck(): Promise<HealthStatus>;
+}
+
+interface ConnectorCapabilities {
+  dataTypes: string[];
+  labelFamilies: string[];
+  supportsIncremental: boolean;
+  requiresOAuth: boolean;
+}
+```
+
+**Connector Types**:
+- **Framework Connectors**: OS data frameworks (HealthKit, Health Connect)
+- **OAuth Connectors**: User-authorized APIs (Spotify, Strava)
+- **Import Connectors**: User-provided exports (Takeout, Telegram, WhatsApp, Uber, iCloud)
+
+#### 28. Local Vault
+
+**Purpose**: Store raw payloads encrypted on-device.
+
+**Interfaces**:
+- `Vault.put(bytes, metadata)` → raw_ref
+- `Vault.get(raw_ref)` → bytes
+- `Vault.delete(raw_ref)` → void
+- `Vault.cryptoShred(keyId)` → void
+
+**Data Structure**:
+```typescript
+interface VaultEntry {
+  raw_ref: string;
+  encryptedPayload: EncryptedBlob;
+  objectKeyId: string;        // Per-object key wrapped by master
+  metadata: VaultMetadata;
+  ttl?: DateTime;
+  createdAt: DateTime;
+}
+
+interface VaultMetadata {
+  source: string;
+  recordType: string;
+  size: number;
+  checksum: string;
+}
+```
+
+#### 29. Normalizer
+
+**Purpose**: Convert heterogeneous inputs into deterministic canonical event model.
+
+**Canonical Event Schema (v1)**:
+```typescript
+interface CanonicalEvent {
+  event_id: UUID;
+  source: string;              // healthkit|healthconnect|oauth.spotify|import.takeout|...
+  record_type: string;         // sleep_session|workout|trip|chat_thread|...
+  t_start: DateTime;
+  t_end: DateTime;
+  coarse_geo_cell?: string;    // Optional coarse location
+  derived_features: Record<string, any>;  // ODX-safe features
+  labels: string[];            // ODX labels
+  raw_ref: string;             // Pointer to vault
+  ontology_version: string;
+  schema_version: string;
+}
+```
+
+#### 30. Feature Extractor
+
+**Purpose**: Compute privacy-preserving features locally.
+
+**Output Types**:
+- Time buckets: hour-of-day, day-of-week, week index
+- Durations, counts, distance buckets
+- Topic/mood/scene cluster IDs (not raw text/media)
+- Quality flags: verified source vs user import
+
+**Rules (Strict)**:
+- No raw text stored in ODX
+- No faces/biometrics in ODX
+- Geo must be coarse unless user opts in with explicit warnings
+
+#### 31. Label Engine
+
+**Purpose**: Convert features to stable labels using ontology-driven rules.
+
+**Interfaces**:
+- `Labeler.label(event)` → labels[]
+- `Labeler.migrate(fromVersion, toVersion)` → void
+
+**Label Ontology Namespaces**:
+- `domain.*` - What happened (health, mobility, activity, media, comms, finance, device)
+- `time.*` - When (bucket.hour, bucket.dow, bucket.week, bucket.month)
+- `geo.*` - Where (cell, country, city, zone) - coarse only by default
+- `quality.*` - How trustworthy (source, integrity)
+- `privacy.*` - Sharing constraints (class, mode, geo, time, k_floor)
+- `device.*` - Capabilities (os, sensor, cap)
+
+#### 32. ODX Builder
+
+**Purpose**: Build the discoverable index for eligibility matching.
+
+**ODX Entry Schema (v1)**:
+```typescript
+interface ODXEntry {
+  facet_key: string;
+  time_bucket: string;
+  geo_bucket?: string;         // Coarse only
+  count: number;
+  aggregate?: number;
+  quality: 'verified' | 'imported';
+  privacy_floor: PrivacyFloor;
+}
+
+interface PrivacyFloor {
+  k_min: number;               // Minimum cohort size
+  geo_resolution: 'coarse' | 'fine';
+  time_resolution: 'day' | 'week' | 'month';
+}
+```
+
+**Rules (Strict)**:
+- ODX contains no raw payload
+- ODX contains no reversible text
+- ODX contains no precise GPS
+- Store aggregates with privacy floors when risk of re-identification
+
+#### 33. Change Tracker
+
+**Purpose**: Track how data patterns change without storing content.
+
+**Interfaces**:
+- `DeltaLog.append(delta)` → void
+- `DeltaLog.summarize(window)` → HabitSummary
+
+**Data Structure**:
+```typescript
+interface DeltaEntry {
+  prev_hash: string;
+  new_hash: string;
+  label_deltas: LabelDelta[];
+  feature_deltas: FeatureDelta[];
+  timestamp: DateTime;
+}
+
+interface LabelDelta {
+  label: string;
+  change: 'added' | 'removed' | 'count_changed';
+  old_count?: number;
+  new_count?: number;
+}
+```
+
+#### 34. Request Inbox & Local Matcher
+
+**Purpose**: Receive approved requests and decide eligibility locally.
+
+**Interfaces**:
+- `Inbox.receive(request)` → void
+- `Matcher.isEligible(request)` → boolean
+
+**Matching Modes**:
+- **Mode A (Broadcast)**: Strongest privacy, higher bandwidth - all requests broadcast to all nodes
+- **Mode B (Rotating Geo Topics)**: Optional scaling - nodes subscribe to rotating coarse geo topics
+
+#### 35. ConsentContract Builder
+
+**Purpose**: Generate signed contracts that bind transactions.
+
+**Interfaces**:
+- `Contract.buildDraft(request, userChoices)` → ContractDraft
+- `Contract.sign(draft)` → SignedContract
+- `Contract.verify(contract)` → boolean
+
+**Contract Schema**:
+```typescript
+interface ConsentContractP2P {
+  contract_id: UUID;
+  request_id: UUID;
+  provider_did: string;        // Pairwise DID
+  requester_did: string;
+  scope: {
+    labels: string[];
+    time_window: TimeWindow;
+    geo_resolution: 'coarse_only' | 'opt_in_fine';
+    output_mode: 'clean_room' | 'export';
+  };
+  identity: {
+    reveal: boolean;
+    credential_types?: string[];
+  };
+  price: {
+    amount: Decimal;
+    currency: string;
+  };
+  escrow_ref: string;
+  ttl: Duration;
+  signatures: {
+    provider: string;
+    requester: string;
+  };
+  nonce: string;
+  expiry: DateTime;
+}
+```
+
+#### 36. QueryPlan VM (Sandbox)
+
+**Purpose**: Execute constrained, deterministic plans locally.
+
+**Interfaces**:
+- `PlanVM.preview(plan)` → PlanPreview
+- `PlanVM.execute(plan, contract)` → OutputArtifacts
+
+**Allowed Operators (v1)**:
+| Operator | Description |
+|----------|-------------|
+| SELECT | Select base dataset (EVENTS or DELTAS) |
+| FILTER | Filter by labels, time buckets, quality flags |
+| PROJECT | Keep only allowed derived fields |
+| BUCKETIZE | Convert numeric/time fields into coarse buckets |
+| AGGREGATE | count, sum, avg, min, max, p50, p90, histogram |
+| CLUSTER_REF | Map events to precomputed cluster IDs |
+| REDACT | Remove fields; enforce k-floor; enforce coarsening |
+| SAMPLE | Sample from already-approved, de-identified rows |
+| EXPORT | Produce output objects with explicit schema |
+| PACK_CAPSULE | Package outputs into Time Capsule |
+
+**Forbidden Operations**:
+- Any network operation
+- Any arbitrary code execution
+- Any raw payload export unless explicitly enabled
+- Any access to other apps' protected data
+
+**Resource Limits**:
+```typescript
+interface PlanLimits {
+  max_runtime_ms: number;      // Default: 5000
+  max_events: number;          // Default: 200000
+  max_output_kb: number;       // Default: 512
+  max_memory_mb: number;       // Default: 128
+  battery_threshold: number;   // Minimum battery %
+}
+```
+
+#### 37. Time Capsule Packager
+
+**Purpose**: Encrypt outputs and create TTL-bound delivery packages.
+
+**Interfaces**:
+- `Capsule.create(outputs, contract)` → TimeCapsuleP2P
+- `Capsule.verify(capsule)` → boolean
+
+**Capsule Schema**:
+```typescript
+interface TimeCapsuleP2P {
+  capsule_id: UUID;
+  header: {
+    plan_id: UUID;
+    ttl: DateTime;
+    schema: string;
+    summary: CapsuleSummary;
+  };
+  payload_ciphertext: EncryptedBlob;  // Encrypted to requester keys
+  proofs: {
+    capsule_hash: string;
+    contract_id: UUID;
+    signatures: {
+      provider: string;
+      timestamp: DateTime;
+    };
+  };
+  receipts: {
+    created_at: DateTime;
+    key_shred_commitment?: string;
+  };
+}
+```
+
+#### 38. P2P Transport
+
+**Purpose**: Transfer capsules peer-to-peer with end-to-end encryption.
+
+**Interfaces**:
+- `P2P.connect(requesterEndpoint, rendezvousInfo)` → Connection
+- `P2P.sendCapsule(capsule)` → TransferResult
+- `P2P.receiveAck()` → Acknowledgment
+
+**Protocol Options**:
+- WebRTC DataChannel (DTLS encryption)
+- libp2p (DHT, NAT traversal, modular stack)
+
+**Security Requirements**:
+- Mutual authentication
+- Forward secrecy
+- NAT traversal with ciphertext-only relays
+- Resumable transfer with chunk hashes
+
+#### 39. Network Gate
+
+**Purpose**: Enforce that raw data never goes to YACHAQ servers.
+
+**Interfaces**:
+- `NetGate.allow(domain, purpose)` → void
+- `NetGate.send(request)` → Response
+
+**Payload Classification**:
+- `metadata-only`: Allowed to coordinator
+- `ciphertext-capsule`: Allowed to requester P2P
+- `raw-payload`: BLOCKED always
+
+#### 40. On-Device Audit Log
+
+**Purpose**: Verifiable, user-readable proof trail.
+
+**Interfaces**:
+- `Audit.append(event)` → void
+- `Audit.export()` → AuditExport
+
+**Logged Events**:
+- Permissions granted/revoked
+- Requests received
+- Contracts signed
+- Plans executed
+- Capsule hashes created
+- P2P transfers completed
+- TTL crypto-shred events
+
+### Coordinator Components (Server-Side)
+
+#### 41. Request Management Service
+
+**Purpose**: Create, store, and manage requests without raw data.
+
+**Allowed Data**:
+- Request definitions
+- Requester identity
+- Policy approvals
+- Pricing
+
+**Forbidden Data**:
+- Node locations
+- Health flags
+- Private labels
+- Raw data
+
+#### 42. Policy Review & Moderation Service
+
+**Purpose**: Prevent harmful/overly specific/re-identifying requests.
+
+**Outputs**:
+- `policy_stamp` signed by coordinator policy key
+
+#### 43. Rendezvous/Signaling Service
+
+**Purpose**: Help P2P peers find each other.
+
+**Data Minimization**:
+- No stable identifiers
+- Store only ephemeral session info
+- Short TTL on signaling metadata
+
+### Extended Correctness Properties (Phone-as-Node)
+
+#### Property 53: Raw Data Device Residency
+*For any* data collection event, the raw data must be stored only on the DS device, never transmitted to coordinator or any YACHAQ server.
+**Validates: Requirements 302.1, 321.5**
+
+#### Property 54: ODX Safety
+*For any* ODX entry, the entry must contain only: facet_key, time_bucket, geo_bucket (coarse), count/aggregate, quality, privacy_floor - never raw payload, reversible text, or precise GPS.
+**Validates: Requirements 311.1, 311.2**
+
+#### Property 55: QueryPlan Operator Allowlist
+*For any* QueryPlan execution, only operators from the allowlist (SELECT, FILTER, PROJECT, BUCKETIZE, AGGREGATE, CLUSTER_REF, REDACT, SAMPLE, EXPORT, PACK_CAPSULE) may be executed.
+**Validates: Requirements 315.1**
+
+#### Property 56: QueryPlan Network Isolation
+*For any* QueryPlan execution, no network egress is permitted during execution.
+**Validates: Requirements 315.3**
+
+#### Property 57: P2P Capsule Encryption
+*For any* Time Capsule transferred via P2P, the payload must be encrypted to requester public keys only, with mutual authentication and forward secrecy.
+**Validates: Requirements 317.1, 317.2**
+
+#### Property 58: Network Gate Raw Egress Block
+*For any* network request containing raw payload data, the Network Gate must block the request and log the attempt.
+**Validates: Requirements 318.5, 318.6**
+
+#### Property 59: Pairwise DID Anti-Correlation
+*For any* two requesters, the pairwise DIDs generated for them must be different and unlinkable.
+**Validates: Requirements 303.2**
+
+#### Property 60: Consent Replay Safety
+*For any* consent contract, the contract must include contract_id, nonce, and expiry, and reuse of the same nonce must be rejected.
+**Validates: Requirements 304.4**
+
+#### Property 61: Local Eligibility Evaluation
+*For any* request matching, eligibility must be evaluated using only ODX and local geo data, never by transmitting user data to coordinator.
+**Validates: Requirements 313.2**
+
+#### Property 62: Coordinator No Raw Ingestion
+*For any* coordinator endpoint, the endpoint must not accept raw user data, and any attempt to submit raw data must be rejected and logged.
+**Validates: Requirements 321.5, 321.6**
+
+### ODX Label Ontology v1
+
+#### Domain Labels (domain.*)
+```
+domain.health.sleep.session
+domain.health.workout.run|cycle|swim|strength
+domain.health.vitals.hr|bp|glucose
+domain.mobility.trip.ride_hail|transit|walk|drive
+domain.mobility.location.home|work|other
+domain.activity.steps
+domain.activity.cardio
+domain.media.audio.listening
+domain.media.photos.capture
+domain.comms.chat.thread
+domain.comms.chat.activity.high|med|low
+domain.finance.transaction.purchase|transfer
+domain.device.usage.screen_time
+```
+
+#### Time Labels (time.*)
+```
+time.bucket.hour.H00..H23
+time.bucket.dow.MON..SUN
+time.bucket.week.2025W50
+time.bucket.month.2025-12
+time.window.last_7d
+time.window.last_30d
+```
+
+#### Geo Labels (geo.*)
+```
+geo.cell.L<level>.<cell_id>    # Coarse grid cell
+geo.country.<ISO>              # Country code
+geo.city.<name>                # City (opt-in only)
+geo.zone.<policy_zone_id>      # Requester-defined zone
+```
+
+#### Quality Labels (quality.*)
+```
+quality.source.framework       # OS framework
+quality.source.oauth           # OAuth API
+quality.source.import          # User import
+quality.integrity.verified     # Signature/checksum verified
+quality.integrity.partial      # Partial verification
+```
+
+#### Privacy Labels (privacy.*)
+```
+privacy.class.A|B|C
+privacy.mode.clean_room
+privacy.mode.export
+privacy.geo.coarse_only
+privacy.geo.opt_in_fine
+privacy.time.coarse_only
+privacy.k_floor.<n>
+```
+
+#### Sensitivity Classification
+| Class | Description | Default Output | Default Geo/Time |
+|-------|-------------|----------------|------------------|
+| A (Strict) | Health, minors, comms content, precise location | clean_room | coarse |
+| B (Moderate) | Mobility summaries, media patterns, behavior | aggregates | coarse |
+| C (Low) | Operational metrics, app versions | features | any |
+
+### QueryPlan DSL v1
+
+#### Plan Format (Canonical JSON)
+```json
+{
+  "plan_version": "1.0",
+  "plan_id": "uuid",
+  "request_id": "uuid",
+  "declared_ops": ["SELECT", "FILTER", "AGGREGATE", "BUCKETIZE", "REDACT", "EXPORT"],
+  "inputs": {
+    "time_window": {"start": "...", "end": "..."},
+    "label_filters": ["domain.health.sleep.session", "domain.activity.steps"],
+    "geo_policy": "coarse_only",
+    "privacy": {"mode": "clean_room", "k_floor": 10}
+  },
+  "steps": [
+    {"op": "SELECT", "args": {"from": "EVENTS"}},
+    {"op": "FILTER", "args": {"by_labels": ["domain.health.sleep.session"]}},
+    {"op": "AGGREGATE", "args": {"metrics": [{"field": "sleep_minutes", "fn": "avg"}]}}
+  ],
+  "outputs": [
+    {"name": "weekly_habits_v1", "schema": "yachaq.weekly_habits.v1"}
+  ],
+  "limits": {"max_runtime_ms": 5000, "max_events": 200000, "max_output_kb": 512},
+  "signatures": {"requester": "sig"}
+}
+```
+
+### iOS/Android Permission Matrix v1
+
+#### iOS Permissions
+| iOS Capability | OS Permission | YACHAQ Scope |
+|----------------|---------------|--------------|
+| Health data | HealthKit authorization | scope.health.read.* |
+| Motion/Fitness | Motion & Fitness | scope.activity.read.* |
+| Location (coarse) | Location When-In-Use | scope.mobility.location.coarse |
+| Photos metadata | Photos access | scope.media.photos.metadata |
+| Microphone | Microphone | scope.media.audio.session_features |
+| Files import | File picker | scope.import.* |
+
+#### Android Permissions
+| Android Capability | OS Permission | YACHAQ Scope |
+|--------------------|---------------|--------------|
+| Health data | Health Connect permissions | scope.health.read.* |
+| Activity | ACTIVITY_RECOGNITION | scope.activity.read.* |
+| Location (coarse) | ACCESS_COARSE_LOCATION | scope.mobility.location.coarse |
+| Photos | READ_MEDIA_IMAGES/VIDEO | scope.media.photos.metadata |
+| Microphone | RECORD_AUDIO | scope.media.audio.session_features |
+| Files import | Storage Access Framework | scope.import.* |
+| Bluetooth | BLUETOOTH_CONNECT | scope.device.sensor.wearables |
+
+### Security Test Plan v1
+
+#### Automated Test Suites
+1. **ODX Safety Scanner**: Ensure forbidden fields never appear in ODX or coordinator payloads
+2. **PlanVM Fuzzing**: Random and adversarial plans testing disallowed operators, oversized outputs, sandbox escapes
+3. **Parser Fuzzing**: ZIP bombs, JSON bombs, malformed encodings, huge media references
+4. **Network Egress Guard Tests**: Attempt to send raw payload bytes to any network route
+5. **Replay & MITM Tests**: Reuse old requests/contracts/capsules
+6. **Correlation Tests**: Verify pairwise identities differ per requester and rotate properly
+
+#### Manual Red-Team Scenarios
+1. Craft QueryPlan that tries to export raw vault blobs
+2. Craft QueryPlan that tries to infer private labels from tiny cohorts
+3. Attempt to tamper with audit log events
+4. Attempt to correlate user across multiple requesters
+5. Force location leakage via repeated zone queries
+6. Validate high-risk request gating (health + minors + neighborhood)
+
+#### Acceptance Security Gates
+- [ ] Coordinator has no raw ingestion endpoints
+- [ ] All request/contract/plan/capsule signatures validate end-to-end
+- [ ] PlanVM passes fuzzing thresholds and cannot make network calls
+- [ ] ODX safety scanner shows zero forbidden leaks
+- [ ] Reproducible build verification documented and repeatable
+
+
+---
+
+## Provider App UI/UX Components
+
+### 44. Onboarding & Trust Center
+
+**Purpose**: Explain invariants and build user trust during first launch.
+
+**Screens**:
+- Trust Center: Shows data stays on phone, ODX-only discovery, P2P fulfillment
+- Proof Dashboard: Demonstrates what app can/cannot do
+- Identity Setup: Create node identity, backup policy selection
+- Consent Defaults: Configure initial privacy preferences
+
+### 45. Data Sources & Connectors Manager
+
+**Purpose**: Manage data source connections and imports.
+
+**Features**:
+- Per-connector enable/disable
+- Connector health, last sync, data-class warnings
+- Import workflows with file scan + size estimates
+
+### 46. Permissions Console
+
+**Purpose**: Unified view of all permissions.
+
+**Features**:
+- OS permissions, YACHAQ scopes, per-request exceptions
+- Presets (Minimal/Standard/Full) with advanced toggles
+- Impact visualization for permission changes
+
+### 47. ODX Index Inspector
+
+**Purpose**: Show what labels exist on device (local-only).
+
+**Features**:
+- Labels with counts/buckets only (never raw data)
+- "Why did I match?" explanations
+- "What is hidden?" section
+
+### 48. Marketplace Inbox
+
+**Purpose**: Browse and filter available requests.
+
+**Features**:
+- Approved requests with filters (risk class, payout, category)
+- Requester profile, reputation, required scopes, output mode, TTL, identity requirement
+- Risk class visual indicators (A/B/C)
+
+### 49. Consent Studio
+
+**Purpose**: Review and customize consent before accepting.
+
+**Features**:
+- Plan Preview + privacy impact meter
+- Scope editor (label families, time window, geo/time granularity, output mode)
+- Identity reveal switch (default OFF)
+- Payout change visualization
+
+### 50. Execution & Delivery Monitor
+
+**Purpose**: Track plan execution and data delivery.
+
+**Features**:
+- Progress, resource usage, transfer stats
+- Ciphertext-only transmission indicator
+- Resumability controls
+
+### 51. Earnings & Receipts
+
+**Purpose**: Track earnings and provide tax documentation.
+
+**Features**:
+- Escrow state, payouts, receipts
+- Exportable transaction proofs (capsule hash, contract signature)
+- Tax-friendly export formats
+
+### 52. Emergency Controls
+
+**Purpose**: Instant protection when needed.
+
+**Features**:
+- Stop all sharing instantly
+- Revoke all requester relationships
+- Purge vault categories (with warnings)
+
+## Requester Product Components
+
+### 53. Requester Portal
+
+**Purpose**: Create and manage data requests.
+
+**Features**:
+- Request templates
+- ODX criteria configuration
+- Policy rejection feedback with downscope suggestions
+
+### 54. Capsule Verification Tool
+
+**Purpose**: Verify received data capsules.
+
+**Features**:
+- Signature verification
+- Schema validation
+- Hash receipt verification
+- Clean-room processing recommendation
+
+### 55. Requester Vetting Service
+
+**Purpose**: Manage requester trust tiers.
+
+**Tiers**:
+| Tier | Requirements | Allowed Requests |
+|------|--------------|------------------|
+| Basic | Email verification | Class C only, low budget |
+| Verified | KYB, compliance attestation | Class B, medium budget |
+| Enterprise | Full audit, bond posted | Class A (with constraints), high budget |
+
+### 56. Dispute Resolution Service
+
+**Purpose**: Handle disputes fairly without exposing raw data.
+
+**Flow**:
+1. Dispute filed with evidence (contract, receipts, audit proofs)
+2. Escrow held
+3. Review by platform
+4. Decision and escrow release/refund
+
+## Missing Module Designs
+
+### 57. ODX Criteria Language
+
+**Purpose**: Safe query language for request eligibility.
+
+**Grammar (v1)**:
+```
+criteria := facet_match | and_expr | or_expr | not_expr
+facet_match := facet_key op value
+facet_key := domain.* | time.* | geo.* | quality.* | privacy.*
+op := eq | neq | gt | lt | gte | lte | in | contains
+and_expr := criteria AND criteria
+or_expr := criteria OR criteria
+not_expr := NOT criteria
+```
+
+**Constraints**:
+- Only allowed ODX facets
+- No exact addresses (geo.cell minimum level)
+- Privacy floors enforced
+- Statically checkable
+
+### 58. Clean-room Output Schema Library
+
+**Purpose**: Standard output schemas preventing raw exports.
+
+**Standard Schemas**:
+| Schema | Sensitivity | Description |
+|--------|-------------|-------------|
+| weekly_habits_v1 | B | Sleep, activity, timing aggregates |
+| mobility_summary_v1 | B | Trip counts, distance buckets, time patterns |
+| health_adherence_v1 | A | Medication/treatment adherence patterns |
+| media_preferences_v1 | C | Genre preferences, listening patterns |
+| comms_activity_v1 | A | Communication frequency, not content |
+
+### 59. Privacy Budget Service
+
+**Purpose**: Prevent re-identification through query accumulation.
+
+**Budget Model**:
+```typescript
+interface PrivacyBudget {
+  dsId: string;
+  requesterId: string;
+  totalBudget: number;
+  consumed: number;
+  remaining: number;
+  lastReset: DateTime;
+  resetPolicy: 'daily' | 'weekly' | 'monthly';
+}
+```
+
+**Rules**:
+- Each query consumes budget based on specificity
+- k-floor violations consume extra budget
+- Budget exhaustion blocks further queries
+- Repeated similar queries flagged for review
+
+## Extended Correctness Properties
+
+#### Property 63: ODX Criteria Safety
+*For any* ODX criteria expression, the criteria must reference only allowed ODX facets and must not allow specificity below privacy floor thresholds.
+**Validates: Requirements 353.1, 353.2**
+
+#### Property 64: Clean-room Schema Enforcement
+*For any* request output, the output must conform to a registered clean-room schema with appropriate sensitivity grade and coarsening applied.
+**Validates: Requirements 354.2, 354.3**
+
+#### Property 65: Privacy Budget Enforcement
+*For any* sequence of queries from the same requester to the same DS, the cumulative privacy cost must not exceed the allocated budget.
+**Validates: Requirements 359.1, 359.4**
+
+#### Property 66: Offline Queue Persistence
+*For any* contract or plan created while offline, the operation must survive app restarts and be processed when connectivity returns.
+**Validates: Requirements 360.1, 360.3**
+
+#### Property 67: Anti-Dark-Pattern Compliance
+*For any* consent screen, the default state must be privacy-preserving (identity reveal OFF, minimal sharing) and options must be clearly presented without manipulation.
+**Validates: Requirements 361.1, 361.2**
+
+## Scenario Matrix
+
+### Dimension Categories
+
+1. **Data Class**: A (strict), B (moderate), C (low)
+2. **Output Mode**: clean_room, export (gated)
+3. **Identity**: anonymous, optional_reveal, required_reveal
+4. **Geo Resolution**: coarse_only, opt_in_fine
+5. **Time Resolution**: day, week, month
+6. **Requester Tier**: basic, verified, enterprise
+7. **Risk Flags**: minors, health, location, comms
+8. **Network**: online, offline, poor_connectivity
+9. **Device Trust**: high, medium, low, unverified
+
+### Scenario Generation Rules
+
+```
+For each combination of:
+  data_class ∈ {A, B, C}
+  output_mode ∈ {clean_room, export}
+  identity ∈ {anonymous, optional, required}
+  geo ∈ {coarse, fine}
+  time ∈ {day, week, month}
+  requester_tier ∈ {basic, verified, enterprise}
+  risk_flags ∈ powerset({minors, health, location, comms})
+  
+Apply constraints:
+  IF data_class = A THEN output_mode = clean_room
+  IF risk_flags contains minors THEN requester_tier >= verified
+  IF risk_flags contains {health, location} THEN geo = coarse
+  IF requester_tier = basic THEN data_class = C
+  
+Generate test case with expected outcomes
+```
+
+### Critical Scenario Examples
+
+1. **Health + Minors + Location**: Must default to clean_room, coarse geo/time, k-floor=100
+2. **Export Request from Basic Tier**: Must be rejected
+3. **Offline Contract Signing**: Must queue and process on reconnect
+4. **Privacy Budget Exhaustion**: Must block further queries
+5. **Root/Jailbreak Detection**: Must downgrade to Class C outputs only

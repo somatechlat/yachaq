@@ -79,56 +79,56 @@
 - [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Request and Screening Engine
-  - [ ] 7.1 Implement request data model and repository
+- [x] 7. Request and Screening Engine
+  - [x] 7.1 Implement request data model and repository
     - Create Request entity with all required fields
     - Implement request lifecycle state machine
     - _Requirements: 5.1, 5.2_
-  - [ ] 7.2 Implement screening engine with policy rules
+  - [x] 7.2 Implement screening engine with policy rules
     - Create deterministic rules engine for policy violations
     - Implement AI-assisted risk scoring
     - _Requirements: 6.1, 6.2, 6.3_
-  - [ ] 7.3 Implement anti-targeting cohort threshold enforcement
+  - [x] 7.3 Implement anti-targeting cohort threshold enforcement
     - Calculate cohort size from eligibility criteria
     - Reject requests with k < 50
     - _Requirements: 196.1, 196.2_
-  - [ ] 7.4 Write property test for cohort threshold
+  - [x] 7.4 Write property test for cohort threshold
     - **Property 11: Anti-Targeting Cohort Threshold**
     - **Validates: Requirements 196.1**
 
-- [ ] 8. Escrow and Financial Ledger
-  - [ ] 8.1 Implement escrow account management
+- [x] 8. Escrow and Financial Ledger
+  - [x] 8.1 Implement escrow account management
     - Create EscrowAccount entity
     - Implement deposit, lock, release, refund operations
     - _Requirements: 7.1, 7.2, 61.1_
-  - [ ] 8.2 Implement double-entry financial ledger
+  - [x] 8.2 Implement double-entry financial ledger
     - Create JournalEntry entity with idempotency
     - Implement posting with debit/credit validation
     - _Requirements: 186.1, 186.2_
-  - [ ] 8.3 Implement escrow funding prerequisite check
+  - [x] 8.3 Implement escrow funding prerequisite check
     - Verify escrow is funded before request delivery
     - Block delivery if escrow insufficient
     - _Requirements: 7.3_
-  - [ ] 8.4 Write property test for escrow funding prerequisite
+  - [x] 8.4 Write property test for escrow funding prerequisite
     - **Property 3: Escrow Funding Prerequisite**
     - **Validates: Requirements 7.1, 7.2**
-  - [ ] 8.5 Write property test for double-entry balance
+  - [x] 8.5 Write property test for double-entry balance
     - **Property 9: Double-Entry Balance**
     - **Validates: Requirements 186.1**
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Matching Engine
-  - [ ] 10.1 Implement privacy-preserving matching
+- [x] 10. Matching Engine
+  - [x] 10.1 Implement privacy-preserving matching
     - Match requests to DS using ODX labels only
     - Enforce k-anonymity thresholds
     - _Requirements: 8.1, 8.2_
-  - [ ] 10.2 Implement uniform compensation enforcement
+  - [x] 10.2 Implement uniform compensation enforcement
     - Ensure same unit price for all DS in same request
     - Display compensation in local currency (LCD)
     - _Requirements: 10.1, 10.2_
-  - [ ] 10.3 Write property test for uniform compensation
+  - [x] 10.3 Write property test for uniform compensation
     - **Property 4: Uniform Compensation**
     - **Validates: Requirements 10.2**
 
@@ -483,3 +483,899 @@
     - Require step-up verification for exports
     - Apply watermarking and full audit trail
     - _Requirements: 211.1, 211.2, 211.3_
+
+
+---
+
+## Phone-as-Node P2P Architecture Implementation
+
+- [ ] 42. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 43. Node Runtime Kernel
+  - [ ] 43.1 Implement Node Kernel boot sequence
+    - Create Kernel class with start() method
+    - Implement boot sequence: key init → vault mount → ODX load → connectors init → scheduler
+    - _Requirements: 302.1_
+  - [ ] 43.2 Implement job scheduling with constraints
+    - Create runJob(jobType, constraints) method
+    - Enforce battery, charging, thermal, and network constraints
+    - _Requirements: 302.2_
+  - [ ] 43.3 Implement internal event bus
+    - Create emit(event) and on(eventType, handler) methods
+    - Route all module communication through event bus
+    - _Requirements: 302.3_
+  - [ ]* 43.4 Write unit tests for kernel boot and scheduling
+    - Test boot idempotency, job scheduling under constraints, module isolation
+    - _Requirements: 302.1, 302.2_
+
+- [ ] 44. Key Management Service
+  - [ ] 44.1 Implement root keypair generation
+    - Generate long-term root keypair with hardware-backed storage when available
+    - Store in secure enclave/keystore
+    - _Requirements: 303.1_
+  - [ ] 44.2 Implement DID derivation
+    - Create Node DID for local identity
+    - Create pairwise DIDs per requester for anti-correlation
+    - _Requirements: 303.2_
+  - [ ] 44.3 Implement key rotation policies
+    - Rotate network identifiers daily/weekly
+    - Rotate pairwise identifiers per relationship or contract
+    - _Requirements: 303.4, 303.5_
+  - [ ] 44.4 Implement session key derivation
+    - Derive unique session keys for P2P transfers
+    - _Requirements: 303.3_
+  - [ ]* 44.5 Write property test for pairwise DID anti-correlation
+    - **Property 59: Pairwise DID Anti-Correlation**
+    - **Validates: Requirements 303.2**
+  - [ ]* 44.6 Write unit tests for key management
+    - Test key rotation correctness, signature verification, loss/recovery flows
+    - _Requirements: 303.4, 303.5_
+
+- [ ] 45. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 46. Permissions & Consent Firewall
+  - [ ] 46.1 Implement OS permission checking
+    - Create checkOS(permission) method
+    - Request permissions just-in-time with explanations
+    - _Requirements: 304.1_
+  - [ ] 46.2 Implement YACHAQ permission layers
+    - Create checkYachaq(scope) method
+    - Enforce per connector, per label family, per resolution, per requester, per QueryPlan
+    - _Requirements: 304.2_
+  - [ ] 46.3 Implement consent preview and signing
+    - Create promptContractPreview(contractDraft) method
+    - Create signContract(contractDraft) method with replay-safe nonce and expiry
+    - _Requirements: 304.3, 304.4_
+  - [ ] 46.4 Implement permission presets
+    - Create Minimal, Standard, Full presets with visible toggles
+    - _Requirements: 304.6_
+  - [ ]* 46.5 Write property test for consent replay safety
+    - **Property 60: Consent Replay Safety**
+    - **Validates: Requirements 304.4**
+  - [ ]* 46.6 Write unit tests for permission matrix
+    - Test each feature fails closed when permissions missing
+    - _Requirements: 304.5_
+
+- [ ] 47. Connector Framework
+  - [ ] 47.1 Implement Connector interface
+    - Create capabilities(), authorize(), sync(sinceCursor), healthcheck() methods
+    - _Requirements: 305.1, 305.2, 305.3, 305.4_
+  - [ ] 47.2 Implement Framework connectors (HealthKit/Health Connect)
+    - Create iOS HealthKit connector
+    - Create Android Health Connect connector
+    - _Requirements: 305.1, 330.1, 331.1_
+  - [ ] 47.3 Implement OAuth connectors (Spotify/Strava)
+    - Create Spotify OAuth connector
+    - Create Strava OAuth connector
+    - _Requirements: 305.1, 330.5, 331.5_
+  - [ ] 47.4 Implement rate limiting and backoff
+    - Add backoff and retry logic for rate limits
+    - _Requirements: 305.5_
+  - [ ]* 47.5 Write contract tests for connectors
+    - Test each connector interface, rate-limit/backoff
+    - _Requirements: 305.4, 305.5_
+
+- [ ] 48. Data Importers
+  - [ ] 48.1 Implement Google Takeout importer
+    - Parse Takeout ZIP structure
+    - Extract and normalize supported data types
+    - _Requirements: 306.1, 306.3_
+  - [ ] 48.2 Implement WhatsApp/Telegram export importers
+    - Parse WhatsApp export format
+    - Parse Telegram JSON/HTML export format
+    - _Requirements: 306.1, 306.3_
+  - [ ] 48.3 Implement Uber/iCloud importers
+    - Parse Uber data export
+    - Parse iCloud archive format
+    - _Requirements: 306.1, 306.3_
+  - [ ] 48.4 Implement import security checks
+    - Add checksum verification and malware scanning
+    - Display sensitivity warnings
+    - _Requirements: 306.2, 306.6_
+  - [ ]* 48.5 Write fuzz tests for importers
+    - Test corrupted ZIP, huge file streaming, safe memory limits
+    - _Requirements: 306.2, 306.3_
+
+- [ ] 49. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 50. Local Vault (Encrypted Storage)
+  - [ ] 50.1 Implement vault storage with envelope encryption
+    - Create put(bytes, metadata) method returning raw_ref
+    - Implement per-object keys wrapped by vault master key
+    - _Requirements: 307.1, 307.2_
+  - [ ] 50.2 Implement vault retrieval and deletion
+    - Create get(raw_ref) and delete(raw_ref) methods
+    - _Requirements: 307.2, 307.3_
+  - [ ] 50.3 Implement crypto-shred for TTL objects
+    - Create cryptoShred(keyId) method
+    - _Requirements: 307.3_
+  - [ ] 50.4 Implement vault access control
+    - Restrict access to allowed modules only (feature extractor, plan VM)
+    - _Requirements: 307.5_
+  - [ ]* 50.5 Write unit tests for vault operations
+    - Test key rotation, corruption recovery, secure delete semantics
+    - _Requirements: 307.3, 307.6_
+
+- [ ] 51. Data Normalizer
+  - [ ] 51.1 Implement canonical event model
+    - Create CanonicalEvent class with all required fields
+    - _Requirements: 308.1_
+  - [ ] 51.2 Implement source-specific normalizers
+    - Create deterministic mapping per source type
+    - _Requirements: 308.2_
+  - [ ] 51.3 Implement schema versioning and migration
+    - Support versioned schema evolution
+    - _Requirements: 308.3_
+  - [ ]* 51.4 Write golden-file tests for normalization
+    - Verify same input produces same canonical output
+    - _Requirements: 308.4, 308.5_
+
+- [ ] 52. Feature Extractor
+  - [ ] 52.1 Implement time bucket extraction
+    - Extract hour-of-day, day-of-week, week index
+    - _Requirements: 309.1_
+  - [ ] 52.2 Implement numeric feature extraction
+    - Extract durations, counts, distance buckets
+    - _Requirements: 309.1_
+  - [ ] 52.3 Implement cluster ID extraction
+    - Extract topic/mood/scene cluster IDs (not raw content)
+    - _Requirements: 309.1_
+  - [ ] 52.4 Implement quality flag extraction
+    - Distinguish verified sources from user imports
+    - _Requirements: 309.5_
+  - [ ]* 52.5 Write leakage tests for feature extractor
+    - Ensure no raw content appears in ODX
+    - _Requirements: 309.2, 309.3, 309.6_
+
+- [ ] 53. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 54. Label Engine
+  - [ ] 54.1 Implement rule-based labeling
+    - Create Labeler.label(event) method
+    - Apply explainable rule-based labels
+    - _Requirements: 310.1_
+  - [ ] 54.2 Implement label ontology with namespaces
+    - Create domain.*, time.*, geo.*, quality.*, privacy.* namespaces
+    - _Requirements: 310.4_
+  - [ ] 54.3 Implement ontology versioning and migration
+    - Create Labeler.migrate(fromVersion, toVersion) method
+    - Maintain migration tables for backward compatibility
+    - _Requirements: 310.3, 310.5_
+  - [ ]* 54.4 Write ontology regression tests
+    - Test ontology regression and migration correctness
+    - _Requirements: 310.6_
+
+- [ ] 55. ODX Builder
+  - [ ] 55.1 Implement ODX entry creation
+    - Create ODXEntry with facet_key, time_bucket, geo_bucket, count, quality, privacy_floor
+    - _Requirements: 311.1_
+  - [ ] 55.2 Implement ODX safety validation
+    - Ensure no raw payload, reversible text, or precise GPS
+    - _Requirements: 311.2_
+  - [ ] 55.3 Implement ODX query and upsert
+    - Create ODX.query(criteria) and ODX.upsert(entries) methods
+    - _Requirements: 311.4, 311.6_
+  - [ ]* 55.4 Write property test for ODX safety
+    - **Property 54: ODX Safety**
+    - **Validates: Requirements 311.1, 311.2**
+
+- [ ] 56. Change Tracker
+  - [ ] 56.1 Implement delta log with hash chaining
+    - Create DeltaLog.append(delta) method
+    - Maintain prev_hash → new_hash chain
+    - _Requirements: 312.1_
+  - [ ] 56.2 Implement habit summarization
+    - Create DeltaLog.summarize(window) method
+    - _Requirements: 312.3_
+  - [ ]* 56.3 Write unit tests for change tracker
+    - Test tamper detection, delta correctness
+    - _Requirements: 312.4_
+
+- [ ] 57. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 58. Request Inbox & Local Matcher
+  - [ ] 58.1 Implement request inbox
+    - Create Inbox.receive(request) method
+    - Verify request signatures and policy stamps
+    - _Requirements: 313.1_
+  - [ ] 58.2 Implement local eligibility matching
+    - Create Matcher.isEligible(request) method
+    - Evaluate using ODX and local geo only
+    - _Requirements: 313.2_
+  - [ ] 58.3 Implement matching modes
+    - Support Mode A (broadcast) and Mode B (rotating geo topics)
+    - _Requirements: 313.4_
+  - [ ]* 58.4 Write property test for local eligibility evaluation
+    - **Property 61: Local Eligibility Evaluation**
+    - **Validates: Requirements 313.2**
+  - [ ]* 58.5 Write unit tests for request matching
+    - Test signature verification, replay protection, local-geo-only evaluation
+    - _Requirements: 313.5_
+
+- [ ] 59. ConsentContract Builder
+  - [ ] 59.1 Implement contract draft building
+    - Create Contract.buildDraft(request, userChoices) method
+    - Include labels, time window, output mode, identity, price, escrow, TTL
+    - _Requirements: 314.1, 314.2_
+  - [ ] 59.2 Implement contract signing
+    - Create Contract.sign(draft) method
+    - Require user signature followed by requester countersignature
+    - _Requirements: 314.3_
+  - [ ] 59.3 Implement contract verification
+    - Create Contract.verify(contract) method
+    - Validate signatures and ensure immutability
+    - _Requirements: 314.4_
+  - [ ]* 59.4 Write unit tests for contract builder
+    - Test serialization, signature correctness, immutability
+    - _Requirements: 314.5_
+
+- [ ] 60. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 61. QueryPlan VM (Sandbox)
+  - [ ] 61.1 Implement plan preview
+    - Create PlanVM.preview(plan) method
+    - Show human-readable outputs and privacy impact
+    - _Requirements: 315.5_
+  - [ ] 61.2 Implement plan execution with operator allowlist
+    - Create PlanVM.execute(plan, contract) method
+    - Allow only: SELECT, FILTER, PROJECT, BUCKETIZE, AGGREGATE, CLUSTER_REF, REDACT, SAMPLE, EXPORT, PACK_CAPSULE
+    - _Requirements: 315.1_
+  - [ ] 61.3 Implement sandbox isolation
+    - Block arbitrary code execution
+    - Block all network egress during execution
+    - _Requirements: 315.2, 315.3_
+  - [ ] 61.4 Implement resource limits
+    - Enforce CPU, memory, time, and battery limits
+    - _Requirements: 315.4_
+  - [ ] 61.5 Implement static plan validation
+    - Reject plans with disallowed operators, scope violations, output conflicts
+    - _Requirements: 315.6_
+  - [ ]* 61.6 Write property test for operator allowlist
+    - **Property 55: QueryPlan Operator Allowlist**
+    - **Validates: Requirements 315.1**
+  - [ ]* 61.7 Write property test for network isolation
+    - **Property 56: QueryPlan Network Isolation**
+    - **Validates: Requirements 315.3**
+  - [ ]* 61.8 Write fuzz tests for PlanVM
+    - Test sandbox escape attempts, resource exhaustion
+    - _Requirements: 315.7_
+
+- [ ] 62. Time Capsule Packager
+  - [ ] 62.1 Implement capsule creation
+    - Create Capsule.create(outputs, contract) method
+    - Include header with plan_id, TTL, schema, summary
+    - _Requirements: 316.1_
+  - [ ] 62.2 Implement capsule encryption
+    - Encrypt payload to requester public keys only
+    - _Requirements: 316.2_
+  - [ ] 62.3 Implement proof attachment
+    - Attach signatures, capsule hash, contract_id
+    - _Requirements: 316.3_
+  - [ ] 62.4 Implement TTL crypto-shred
+    - Support crypto-shred for TTL keys
+    - _Requirements: 316.4_
+  - [ ]* 62.5 Write unit tests for capsule packager
+    - Test integrity checks, wrong-key failures, TTL lifecycle
+    - _Requirements: 316.5, 316.6_
+
+- [ ] 63. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 64. P2P Transport
+  - [ ] 64.1 Implement secure handshake
+    - Create P2P.connect(requesterEndpoint, rendezvousInfo) method
+    - Implement mutual authentication and forward secrecy
+    - _Requirements: 317.1_
+  - [ ] 64.2 Implement NAT traversal with ciphertext-only relays
+    - Support relays that carry only ciphertext
+    - _Requirements: 317.2_
+  - [ ] 64.3 Implement resumable transfer
+    - Create P2P.sendCapsule(capsule) method
+    - Support chunk hashes and resume
+    - _Requirements: 317.3_
+  - [ ] 64.4 Implement acknowledgment receipts
+    - Create P2P.receiveAck() method
+    - _Requirements: 317.4_
+  - [ ]* 64.5 Write property test for P2P encryption
+    - **Property 57: P2P Capsule Encryption**
+    - **Validates: Requirements 317.1, 317.2**
+  - [ ]* 64.6 Write unit tests for P2P transport
+    - Test MITM simulations, relay-only scenarios, packet loss/resume
+    - _Requirements: 317.5_
+
+- [ ] 65. Network Gate
+  - [ ] 65.1 Implement network gate routing
+    - Create NetGate.send(request) method
+    - Route all network calls through gate
+    - _Requirements: 318.1_
+  - [ ] 65.2 Implement payload classification
+    - Classify metadata-only vs ciphertext capsule traffic
+    - _Requirements: 318.2_
+  - [ ] 65.3 Implement destination allowlist
+    - Create NetGate.allow(domain, purpose) method
+    - Block unknown destinations by default
+    - _Requirements: 318.3, 318.4_
+  - [ ] 65.4 Implement raw egress blocking
+    - Block and log any raw payload egress attempts
+    - _Requirements: 318.5, 318.6_
+  - [ ]* 65.5 Write property test for raw egress blocking
+    - **Property 58: Network Gate Raw Egress Block**
+    - **Validates: Requirements 318.5, 318.6**
+
+- [ ] 66. On-Device Audit Log
+  - [ ] 66.1 Implement hash-chained audit log
+    - Create Audit.append(event) method
+    - Maintain hash chain for tamper detection
+    - _Requirements: 319.1_
+  - [ ] 66.2 Implement event logging
+    - Log permissions, requests, contracts, plans, capsules, transfers, crypto-shred events
+    - _Requirements: 319.2_
+  - [ ] 66.3 Implement transparency UI
+    - Display events in plain language
+    - _Requirements: 319.3_
+  - [ ] 66.4 Implement audit export
+    - Create Audit.export() method
+    - _Requirements: 319.4_
+  - [ ]* 66.5 Write unit tests for audit log
+    - Test tamper detection, export correctness
+    - _Requirements: 319.5, 319.6_
+
+- [ ] 67. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 68. Safety & Sensitivity Gate
+  - [ ] 68.1 Implement high-risk detection
+    - Detect combinations like health + minors + location
+    - _Requirements: 320.1_
+  - [ ] 68.2 Implement forced defaults for high-risk
+    - Force clean-room outputs, coarse geo/time, higher privacy floors
+    - _Requirements: 320.2_
+  - [ ] 68.3 Implement additional consent warnings
+    - Display warnings for high-risk requests
+    - _Requirements: 320.3_
+  - [ ]* 68.4 Write unit tests for sensitivity gate
+    - Test policy enforcement for flagged scenarios
+    - _Requirements: 320.5_
+
+- [ ] 69. Coordinator Request Management
+  - [ ] 69.1 Implement request storage (no raw data)
+    - Store only request definitions, requester identity, policy approvals, pricing
+    - _Requirements: 321.1_
+  - [ ] 69.2 Implement request schema validation
+    - Validate request schema before acceptance
+    - _Requirements: 321.2_
+  - [ ] 69.3 Implement policy stamp attachment
+    - Attach policy stamps after review
+    - _Requirements: 321.3_
+  - [ ] 69.4 Implement request publication
+    - Distribute to nodes via broadcast or topic-based delivery
+    - _Requirements: 321.4_
+  - [ ]* 69.5 Write property test for no raw ingestion
+    - **Property 62: Coordinator No Raw Ingestion**
+    - **Validates: Requirements 321.5, 321.6**
+
+- [ ] 70. Coordinator Policy Review & Moderation
+  - [ ] 70.1 Implement ODX-terms-only criteria enforcement
+    - Enforce allowed criteria expressed in ODX terms
+    - _Requirements: 322.1_
+  - [ ] 70.2 Implement high-risk request blocking/downscoping
+    - Block or downscope high-risk requests
+    - _Requirements: 322.2_
+  - [ ] 70.3 Implement policy stamp signing
+    - Sign policy_stamp with coordinator policy key
+    - _Requirements: 322.4_
+  - [ ]* 70.4 Write unit tests for policy review
+    - Test reason codes and remediation hints
+    - _Requirements: 322.5_
+
+- [ ] 71. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 72. Coordinator Rendezvous & Signaling
+  - [ ] 72.1 Implement ephemeral session tokens
+    - Provide ephemeral tokens for P2P connection
+    - _Requirements: 323.1_
+  - [ ] 72.2 Implement ciphertext-only relay
+    - Operate relay that carries only ciphertext
+    - _Requirements: 323.2_
+  - [ ] 72.3 Implement signaling data minimization
+    - Enforce short TTL, no stable identifiers, ephemeral storage only
+    - _Requirements: 323.3, 323.4, 323.5_
+  - [ ]* 72.4 Write unit tests for rendezvous service
+    - Test TTL enforcement, data minimization
+    - _Requirements: 323.3, 323.5_
+
+- [ ] 73. Coordinator Reputation & Abuse Prevention
+  - [ ] 73.1 Implement requester rate limits
+    - Enforce rate limits on request submission
+    - _Requirements: 324.1_
+  - [ ] 73.2 Implement reputation scoring
+    - Compute scores based on dispute outcomes
+    - _Requirements: 324.2_
+  - [ ] 73.3 Implement abuse signal aggregation
+    - Collect node-side signals without identity
+    - _Requirements: 324.3_
+  - [ ]* 73.4 Write unit tests for abuse prevention
+    - Test rate limits, reputation scoring
+    - _Requirements: 324.1, 324.2_
+
+- [ ] 74. Escrow Orchestrator (P2P)
+  - [ ] 74.1 Implement escrow hold conditions
+    - Hold until contract signed and capsule hash receipt submitted
+    - _Requirements: 325.1_
+  - [ ] 74.2 Implement delivery verification
+    - Optionally confirm capsule integrity through verifier
+    - _Requirements: 325.2_
+  - [ ] 74.3 Implement payment release
+    - Release per contract terms
+    - _Requirements: 325.3_
+  - [ ]* 74.4 Write unit tests for escrow orchestrator
+    - Test partial release, refund workflows
+    - _Requirements: 325.5_
+
+- [ ] 75. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 76. DID/VC Wallet
+  - [ ] 76.1 Implement anonymous mode default
+    - Support anonymous mode by default
+    - _Requirements: 326.1_
+  - [ ] 76.2 Implement credential presentation
+    - Present verifiable credentials to requester when required
+    - _Requirements: 326.2_
+  - [ ] 76.3 Implement credential storage
+    - Store validation state locally with issued_at, expires_at, status checks
+    - _Requirements: 326.3_
+  - [ ] 76.4 Implement P2P credential transmission
+    - Send credentials P2P to requester, never via YACHAQ servers
+    - _Requirements: 326.4_
+  - [ ] 76.5 Implement W3C VC and DID standards
+    - Support W3C Verifiable Credentials and DID standards
+    - _Requirements: 326.5_
+  - [ ] 76.6 Implement OpenID4VP/OpenID4VCI protocols
+    - Support credential exchange protocols
+    - _Requirements: 326.6_
+  - [ ]* 76.7 Write unit tests for DID/VC wallet
+    - Test credential presentation, P2P transmission
+    - _Requirements: 326.2, 326.4_
+
+- [ ] 77. Security Test Suite
+  - [ ] 77.1 Implement ODX Safety Scanner
+    - Ensure forbidden fields never appear in ODX or coordinator payloads
+    - _Requirements: 337.1_
+  - [ ] 77.2 Implement PlanVM fuzzing suite
+    - Test disallowed operators, oversized outputs, sandbox escapes
+    - _Requirements: 337.2_
+  - [ ] 77.3 Implement parser fuzzing suite
+    - Test ZIP bombs, JSON bombs, malformed encodings
+    - _Requirements: 337.3_
+  - [ ] 77.4 Implement network egress guard tests
+    - Attempt to send raw payload bytes to any route
+    - _Requirements: 337.4_
+  - [ ] 77.5 Implement replay and MITM tests
+    - Attempt reuse of old requests/contracts/capsules
+    - _Requirements: 337.5_
+  - [ ] 77.6 Implement correlation tests
+    - Verify pairwise identities differ per requester and rotate
+    - _Requirements: 337.6_
+  - [ ] 77.7 Implement high-risk gating tests
+    - Verify health + minors + neighborhood defaults to clean-room
+    - _Requirements: 337.7_
+
+- [ ] 78. Final Checkpoint - Phone-as-Node P2P Architecture
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 79. Acceptance Security Gates Verification
+  - [ ] 79.1 Verify no raw ingestion endpoints
+    - Confirm coordinator has no raw ingestion endpoints
+    - _Requirements: 338.1_
+  - [ ] 79.2 Verify end-to-end signature validation
+    - Confirm all request/contract/plan/capsule signatures validate
+    - _Requirements: 338.2_
+  - [ ] 79.3 Verify PlanVM security
+    - Confirm PlanVM passes fuzzing and cannot make network calls
+    - _Requirements: 338.3_
+  - [ ] 79.4 Verify ODX safety
+    - Confirm ODX safety scanner shows zero forbidden leaks
+    - _Requirements: 338.4_
+  - [ ] 79.5 Verify reproducible builds
+    - Confirm reproducible build verification is documented and repeatable
+    - _Requirements: 338.5_
+
+- [ ] 80. Final Checkpoint - Complete System
+  - Ensure all tests pass, ask the user if questions arise.
+
+
+---
+
+## Provider App UI/UX Implementation
+
+- [ ] 81. Onboarding & Trust Center
+  - [ ] 81.1 Implement Trust Center screen
+    - Display invariants: data stays on phone, ODX-only discovery, P2P fulfillment
+    - _Requirements: 339.1_
+  - [ ] 81.2 Implement Proof Dashboard
+    - Demonstrate what app can/cannot do
+    - _Requirements: 339.2_
+  - [ ] 81.3 Implement Identity Setup flow
+    - Generate node identity with backup policy selection
+    - _Requirements: 339.3_
+  - [ ] 81.4 Implement Consent Defaults configuration
+    - Allow consent defaults configuration
+    - _Requirements: 339.4_
+  - [ ]* 81.5 Write unit tests for onboarding
+    - Verify no network calls except coordinator metadata
+    - _Requirements: 339.5_
+
+- [ ] 82. Data Sources & Connectors Manager
+  - [ ] 82.1 Implement connector list view
+    - Display per-connector enable/disable controls
+    - _Requirements: 340.1_
+  - [ ] 82.2 Implement connector status display
+    - Show health, last sync, data-class warnings
+    - _Requirements: 340.2_
+  - [ ] 82.3 Implement import workflows
+    - Provide file scan and size estimates
+    - _Requirements: 340.3_
+  - [ ]* 82.4 Write unit tests for connector manager
+    - Test enable/disable, status display, import workflows
+    - _Requirements: 340.4, 340.5_
+
+- [ ] 83. Permissions Console
+  - [ ] 83.1 Implement unified permissions view
+    - Display OS permissions, YACHAQ scopes, per-request exceptions
+    - _Requirements: 341.1_
+  - [ ] 83.2 Implement permission presets
+    - Offer Minimal/Standard/Full presets with advanced toggles
+    - _Requirements: 341.2_
+  - [ ] 83.3 Implement permission impact visualization
+    - Show impact on active requests and earnings
+    - _Requirements: 341.5_
+  - [ ]* 83.4 Write unit tests for permissions console
+    - Test preset application, permission changes
+    - _Requirements: 341.3, 341.4_
+
+- [ ] 84. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 85. ODX Index Inspector
+  - [ ] 85.1 Implement ODX label browser
+    - Show labels with counts/buckets only (never raw data)
+    - _Requirements: 342.1_
+  - [ ] 85.2 Implement "Why did I match?" explanations
+    - Provide match explanations per request
+    - _Requirements: 342.2_
+  - [ ] 85.3 Implement "What is hidden?" section
+    - Explain raw vault is never shown to coordinator
+    - _Requirements: 342.3_
+  - [ ]* 85.4 Write unit tests for ODX inspector
+    - Verify no raw payload content displayed
+    - _Requirements: 342.5_
+
+- [ ] 86. Marketplace Inbox
+  - [ ] 86.1 Implement request list view
+    - Display approved requests with filters
+    - _Requirements: 343.1_
+  - [ ] 86.2 Implement request detail view
+    - Show requester profile, reputation, scopes, output mode, TTL, identity requirement
+    - _Requirements: 343.2_
+  - [ ] 86.3 Implement risk class indicators
+    - Display visual indicators for risk class (A/B/C)
+    - _Requirements: 343.5_
+  - [ ]* 86.4 Write unit tests for marketplace inbox
+    - Test filtering, detail display, notifications
+    - _Requirements: 343.3, 343.4_
+
+- [ ] 87. Consent Studio
+  - [ ] 87.1 Implement Plan Preview
+    - Display plan preview with privacy impact meter
+    - _Requirements: 344.1_
+  - [ ] 87.2 Implement Scope Editor
+    - Allow editing label families, time window, geo/time granularity, output mode
+    - _Requirements: 344.2_
+  - [ ] 87.3 Implement Identity Reveal switch
+    - Show explicit switch with default OFF
+    - _Requirements: 344.3_
+  - [ ] 87.4 Implement payout change visualization
+    - Show how payout changes based on selections
+    - _Requirements: 344.4_
+  - [ ]* 87.5 Write unit tests for consent studio
+    - Test scope editing, payout calculation, confirmation flow
+    - _Requirements: 344.5_
+
+- [ ] 88. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 89. Execution & Delivery Monitor
+  - [ ] 89.1 Implement execution progress display
+    - Show progress, resource usage, transfer stats
+    - _Requirements: 345.1_
+  - [ ] 89.2 Implement ciphertext indicator
+    - Show that only ciphertext is transmitted
+    - _Requirements: 345.2_
+  - [ ] 89.3 Implement resumability controls
+    - Provide resume options for interrupted transfers
+    - _Requirements: 345.3_
+  - [ ]* 89.4 Write unit tests for delivery monitor
+    - Test progress display, error handling, retry
+    - _Requirements: 345.4, 345.5_
+
+- [ ] 90. Earnings & Receipts
+  - [ ] 90.1 Implement earnings dashboard
+    - Display escrow state, payouts, receipts
+    - _Requirements: 346.1_
+  - [ ] 90.2 Implement receipt export
+    - Provide transaction proofs without exposing data
+    - _Requirements: 346.2_
+  - [ ] 90.3 Implement tax export
+    - Provide exportable summaries in standard formats
+    - _Requirements: 346.4_
+  - [ ]* 90.4 Write unit tests for earnings
+    - Test filtering, export, audit trail
+    - _Requirements: 346.3, 346.5_
+
+- [ ] 91. Emergency Controls
+  - [ ] 91.1 Implement emergency stop
+    - Stop all sharing instantly
+    - _Requirements: 347.1_
+  - [ ] 91.2 Implement relationship revocation
+    - Allow revoking all requester relationships
+    - _Requirements: 347.2_
+  - [ ] 91.3 Implement vault purge
+    - Allow category purging with strong warnings
+    - _Requirements: 347.3_
+  - [ ]* 91.4 Write unit tests for emergency controls
+    - Test instant stop, audit logging, recovery
+    - _Requirements: 347.4, 347.5_
+
+- [ ] 92. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Requester Product Implementation
+
+- [ ] 93. Requester Portal
+  - [ ] 93.1 Implement request creation with templates
+    - Provide templates for common use cases
+    - _Requirements: 348.1_
+  - [ ] 93.2 Implement ODX criteria configuration
+    - Allow scope definition using ODX criteria
+    - _Requirements: 348.2_
+  - [ ] 93.3 Implement policy rejection feedback
+    - Show rejections with required downscopes
+    - _Requirements: 348.3_
+  - [ ]* 93.4 Write unit tests for requester portal
+    - Test request creation, status display, analytics
+    - _Requirements: 348.4, 348.5_
+
+- [ ] 94. Capsule Verification Tool
+  - [ ] 94.1 Implement signature verification
+    - Verify capsule signatures
+    - _Requirements: 349.1_
+  - [ ] 94.2 Implement schema validation
+    - Validate capsule against schema
+    - _Requirements: 349.1_
+  - [ ] 94.3 Implement hash receipt verification
+    - Verify hash receipts
+    - _Requirements: 349.1_
+  - [ ]* 94.4 Write unit tests for verification tool
+    - Test verification success/failure, error handling
+    - _Requirements: 349.3, 349.4_
+
+- [ ] 95. Requester Vetting Service
+  - [ ] 95.1 Implement tier assignment
+    - Assign tiers based on verification level
+    - _Requirements: 350.1_
+  - [ ] 95.2 Implement tier-based restrictions
+    - Restrict request types based on tier
+    - _Requirements: 350.2_
+  - [ ] 95.3 Implement bond requirements
+    - Require bonds for high-risk requests
+    - _Requirements: 350.3_
+  - [ ]* 95.4 Write unit tests for vetting service
+    - Test tier assignment, restrictions, notifications
+    - _Requirements: 350.4, 350.5_
+
+- [ ] 96. Dispute Resolution Service
+  - [ ] 96.1 Implement dispute filing
+    - Provide evidence-based dispute flow
+    - _Requirements: 351.1_
+  - [ ] 96.2 Implement escrow hold on dispute
+    - Hold relevant escrow during dispute
+    - _Requirements: 351.3_
+  - [ ] 96.3 Implement dispute resolution
+    - Release or refund escrow per decision
+    - _Requirements: 351.4_
+  - [ ]* 96.4 Write unit tests for dispute service
+    - Test filing, notification, resolution
+    - _Requirements: 351.2, 351.5_
+
+- [ ] 97. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 98. Requester SDK
+  - [ ] 98.1 Implement request creation API
+    - Provide programmatic request creation
+    - _Requirements: 352.1_
+  - [ ] 98.2 Implement capsule verification API
+    - Provide verification functions
+    - _Requirements: 352.2_
+  - [ ] 98.3 Implement multi-language support
+    - Support multiple programming languages
+    - _Requirements: 352.3_
+  - [ ]* 98.4 Write SDK integration tests
+    - Test policy enforcement, error handling
+    - _Requirements: 352.4, 352.5_
+
+## Missing Module Implementation
+
+- [ ] 99. ODX Criteria Language
+  - [ ] 99.1 Implement criteria parser
+    - Parse ODX criteria expressions
+    - _Requirements: 353.1_
+  - [ ] 99.2 Implement specificity validation
+    - Restrict overly specific criteria
+    - _Requirements: 353.2_
+  - [ ] 99.3 Implement privacy floor enforcement
+    - Include privacy floors in criteria
+    - _Requirements: 353.3_
+  - [ ] 99.4 Implement static validation
+    - Make criteria statically checkable
+    - _Requirements: 353.4_
+  - [ ]* 99.5 Write property test for criteria safety
+    - **Property 63: ODX Criteria Safety**
+    - **Validates: Requirements 353.1, 353.2**
+
+- [ ] 100. Clean-room Output Schema Library
+  - [ ] 100.1 Implement schema registry
+    - Register standard output schemas
+    - _Requirements: 354.1_
+  - [ ] 100.2 Implement sensitivity grading
+    - Assign sensitivity grades to schemas
+    - _Requirements: 354.2_
+  - [ ] 100.3 Implement schema enforcement
+    - Enforce schema constraints on outputs
+    - _Requirements: 354.3_
+  - [ ]* 100.4 Write property test for schema enforcement
+    - **Property 64: Clean-room Schema Enforcement**
+    - **Validates: Requirements 354.2, 354.3**
+
+- [ ] 101. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 102. Requester Bonds Service
+  - [ ] 102.1 Implement bond requirements
+    - Require bonds for high-risk requests
+    - _Requirements: 355.1_
+  - [ ] 102.2 Implement bond forfeiture
+    - Forfeit bonds on abuse detection
+    - _Requirements: 355.2_
+  - [ ] 102.3 Implement bond return
+    - Return bonds on successful completion
+    - _Requirements: 355.4_
+  - [ ]* 102.4 Write unit tests for bonds service
+    - Test requirements, forfeiture, return
+    - _Requirements: 355.3, 355.5_
+
+- [ ] 103. PlanVM Safety Proofs
+  - [ ] 103.1 Document operator semantics
+    - Provide complete operator documentation
+    - _Requirements: 356.1_
+  - [ ] 103.2 Implement static validator tests
+    - Pass completeness tests
+    - _Requirements: 356.2_
+  - [ ] 103.3 Implement differential tests
+    - Verify two implementations yield same output
+    - _Requirements: 356.3_
+  - [ ]* 103.4 Write coverage reports
+    - Provide complete test coverage
+    - _Requirements: 356.5_
+
+- [ ] 104. Supply Chain & Reproducible Builds
+  - [ ] 104.1 Implement signed releases
+    - Sign all releases
+    - _Requirements: 357.1_
+  - [ ] 104.2 Implement reproducible build verification
+    - Support build verification procedure
+    - _Requirements: 357.2_
+  - [ ] 104.3 Publish SBOM
+    - Publish Software Bill of Materials
+    - _Requirements: 357.3_
+  - [ ]* 104.4 Write verification documentation
+    - Document verification procedure
+    - _Requirements: 357.4_
+
+- [ ] 105. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 106. Device Trust Signals
+  - [ ] 106.1 Implement root/jailbreak detection
+    - Detect and warn with output downgrade
+    - _Requirements: 358.1_
+  - [ ] 106.2 Implement hardware attestation
+    - Use hardware key attestation on Android
+    - _Requirements: 358.2_
+  - [ ] 106.3 Implement trust-based restrictions
+    - Adjust operations based on trust level
+    - _Requirements: 358.3, 358.4_
+  - [ ]* 106.4 Write unit tests for trust signals
+    - Test detection, restrictions, status display
+    - _Requirements: 358.5_
+
+- [ ] 107. Privacy Budget Service
+  - [ ] 107.1 Implement budget allocation
+    - Allocate privacy budget per DS-requester pair
+    - _Requirements: 359.1_
+  - [ ] 107.2 Implement budget consumption
+    - Track budget consumption per query
+    - _Requirements: 359.1_
+  - [ ] 107.3 Implement deanonymization detection
+    - Detect repeated queries aimed at deanonymization
+    - _Requirements: 359.3_
+  - [ ] 107.4 Implement budget exhaustion blocking
+    - Block queries when budget exhausted
+    - _Requirements: 359.4_
+  - [ ]* 107.5 Write property test for budget enforcement
+    - **Property 65: Privacy Budget Enforcement**
+    - **Validates: Requirements 359.1, 359.4**
+
+- [ ] 108. Offline-First Queuing
+  - [ ] 108.1 Implement contract/plan queue
+    - Queue operations to survive restarts
+    - _Requirements: 360.1_
+  - [ ] 108.2 Implement P2P transfer resumability
+    - Support resume for poor networks
+    - _Requirements: 360.2_
+  - [ ] 108.3 Implement automatic processing
+    - Process queued operations on reconnect
+    - _Requirements: 360.3_
+  - [ ]* 108.4 Write property test for queue persistence
+    - **Property 66: Offline Queue Persistence**
+    - **Validates: Requirements 360.1, 360.3**
+
+- [ ] 109. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 110. UX Anti-Dark-Pattern Compliance
+  - [ ] 110.1 Implement clear consent screens
+    - Ensure consent screens are clear and reversible
+    - _Requirements: 361.1_
+  - [ ] 110.2 Implement privacy-preserving defaults
+    - Default OFF for identity reveal
+    - _Requirements: 361.2_
+  - [ ] 110.3 Implement non-manipulative design
+    - Avoid manipulative design patterns
+    - _Requirements: 361.3_
+  - [ ]* 110.4 Write property test for anti-dark-pattern
+    - **Property 67: Anti-Dark-Pattern Compliance**
+    - **Validates: Requirements 361.1, 361.2**
+
+- [ ] 111. Final Checkpoint - Complete YACHAQ Platform
+  - Ensure all tests pass, ask the user if questions arise.
+  - Verify all acceptance security gates pass.
+  - Confirm reproducible build verification is complete.

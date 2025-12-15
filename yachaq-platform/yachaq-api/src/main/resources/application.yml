@@ -67,7 +67,7 @@ yachaq:
   
   screening:
     policy-version: "1.0.0"
-    min-cohort-size: 50             # k-anonymity threshold (Property 11)
+    min-cohort-size: 50             # k-anonymity threshold
     manual-review-threshold: 0.5    # Risk score threshold for manual review
 
 spring.security.oauth2.client:

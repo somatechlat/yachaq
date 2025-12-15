@@ -13,16 +13,13 @@ import java.util.UUID;
 
 /**
  * Data Access Request entity.
- * Represents a request from a Requester to access DS data.
- * 
- * Validates: Requirements 5.1, 5.2
+ * Real fields only; no placeholders.
  */
 @Entity
 @Table(name = "requests", indexes = {
-    @Index(name = "idx_request_requester", columnList = "requester_id"),
-    @Index(name = "idx_request_status", columnList = "status"),
-    @Index(name = "idx_request_unit_type", columnList = "unit_type"),
-    @Index(name = "idx_request_created", columnList = "created_at")
+        @Index(name = "idx_request_requester", columnList = "requester_id"),
+        @Index(name = "idx_request_status", columnList = "status"),
+        @Index(name = "idx_request_created", columnList = "created_at")
 })
 public class Request {
 
@@ -96,9 +93,6 @@ public class Request {
 
     protected Request() {}
 
-    /**
-     * Creates a new request in DRAFT status.
-     */
     public static Request create(
             UUID requesterId,
             String purpose,
@@ -110,8 +104,8 @@ public class Request {
             BigDecimal unitPrice,
             Integer maxParticipants,
             BigDecimal budget) {
-        
-        var request = new Request();
+
+        Request request = new Request();
         request.requesterId = requesterId;
         request.purpose = purpose;
         request.scope = scope;
@@ -127,72 +121,50 @@ public class Request {
         return request;
     }
 
-    /**
-     * Submits the request for screening.
-     */
     public void submitForScreening() {
-        if (this.status != RequestStatus.DRAFT) {
+        if (status != RequestStatus.DRAFT) {
             throw new IllegalStateException("Can only submit DRAFT requests for screening");
         }
-        this.status = RequestStatus.SCREENING;
-        this.submittedAt = Instant.now();
+        status = RequestStatus.SCREENING;
+        submittedAt = Instant.now();
     }
 
-    /**
-     * Activates the request after screening approval.
-     */
     public void activate() {
-        if (this.status != RequestStatus.SCREENING) {
-            throw new IllegalStateException("Can only activate requests in SCREENING status");
+        if (status != RequestStatus.SCREENING) {
+            throw new IllegalStateException("Can only activate SCREENING requests");
         }
-        this.status = RequestStatus.ACTIVE;
+        status = RequestStatus.ACTIVE;
     }
 
-    /**
-     * Rejects the request after screening.
-     */
     public void reject() {
-        if (this.status != RequestStatus.SCREENING) {
-            throw new IllegalStateException("Can only reject requests in SCREENING status");
+        if (status != RequestStatus.SCREENING) {
+            throw new IllegalStateException("Can only reject SCREENING requests");
         }
-        this.status = RequestStatus.REJECTED;
+        status = RequestStatus.REJECTED;
     }
 
-    /**
-     * Completes the request.
-     */
+    public void cancel() {
+        if (status == RequestStatus.COMPLETED || status == RequestStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot cancel completed or cancelled requests");
+        }
+        status = RequestStatus.CANCELLED;
+    }
+
     public void complete() {
-        if (this.status != RequestStatus.ACTIVE) {
+        if (status != RequestStatus.ACTIVE) {
             throw new IllegalStateException("Can only complete ACTIVE requests");
         }
-        this.status = RequestStatus.COMPLETED;
+        status = RequestStatus.COMPLETED;
     }
 
-    /**
-     * Cancels the request.
-     */
-    public void cancel() {
-        if (this.status == RequestStatus.COMPLETED || this.status == RequestStatus.CANCELLED) {
-            throw new IllegalStateException("Cannot cancel completed or already cancelled requests");
-        }
-        this.status = RequestStatus.CANCELLED;
-    }
-
-    /**
-     * Links escrow account to this request.
-     */
     public void linkEscrow(UUID escrowId) {
         this.escrowId = escrowId;
     }
 
-    /**
-     * Calculates required escrow amount.
-     */
     public BigDecimal calculateRequiredEscrow() {
         return unitPrice.multiply(BigDecimal.valueOf(maxParticipants));
     }
 
-    // Getters
     public UUID getId() { return id; }
     public UUID getRequesterId() { return requesterId; }
     public String getPurpose() { return purpose; }

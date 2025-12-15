@@ -38,6 +38,7 @@ class ConsentServicePropertyTest {
         registry.add("spring.datasource.username", () -> "yachaq");
         registry.add("spring.datasource.password", () -> "yachaq");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.flyway.enabled", () -> "false");
         registry.add("yachaq.jwt.secret", () -> "test-secret-key-minimum-32-characters-long-for-testing");
     }
 
