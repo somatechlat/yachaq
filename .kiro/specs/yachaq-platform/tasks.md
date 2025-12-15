@@ -207,7 +207,7 @@
 - [x] 17. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [-] 18. API Layer
+- [x] 18. API Layer
   - [x] 18.1 Implement REST API endpoints
     - Create endpoints for all core operations
     - Implement rate limiting and authentication
@@ -216,28 +216,28 @@
     - Create unified schema for queries and mutations
     - Implement subscriptions for real-time updates
     - _Requirements: 28.1, 28.7_
-  - [-] 18.3 Write integration tests for API layer
+  - [x] 18.3 Write integration tests for API layer
     - Test authentication, authorization, rate limiting
     - _Requirements: 27.4, 29.1_
 
-- [ ] 19. Smart Contracts (Blockchain Layer)
-  - [ ] 19.1 Implement Escrow smart contract
+- [x] 19. Smart Contracts (Blockchain Layer)
+  - [x] 19.1 Implement Escrow smart contract
     - Deploy contract with deposit, lock, release, refund functions
     - Implement multi-sig governance for disputes
     - _Requirements: 61.1, 61.2_
-  - [ ] 19.2 Implement Consent Registry smart contract
+  - [x] 19.2 Implement Consent Registry smart contract
     - Store consent hashes with expiration and revocation
     - Emit events for consent lifecycle
     - _Requirements: 62.1, 62.2_
-  - [ ] 19.3 Implement Audit Anchor smart contract
+  - [x] 19.3 Implement Audit Anchor smart contract
     - Accept Merkle roots and emit Anchor events
     - Support verification of Merkle proofs
     - _Requirements: 63.1, 63.2_
-  - [ ] 19.4 Write smart contract tests
+  - [x] 19.4 Write smart contract tests
     - Test all contract functions and edge cases
     - _Requirements: 61.10, 62.10_
 
-- [ ] 20. Checkpoint - Ensure all tests pass
+- [x] 20. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 21. Device Attestation Service
