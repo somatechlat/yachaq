@@ -114,6 +114,7 @@ public class AuditReceipt {
         CAPSULE_CREATED,
         CAPSULE_ACCESSED,
         CAPSULE_EXPIRED,
+        SETTLEMENT,
         SETTLEMENT_POSTED,
         PAYOUT_REQUESTED,
         PAYOUT_COMPLETED,
@@ -127,7 +128,14 @@ public class AuditReceipt {
         ESCROW_FUNDED,
         ESCROW_LOCKED,
         ESCROW_RELEASED,
-        ESCROW_REFUNDED
+        ESCROW_REFUNDED,
+        // YC Token events (Requirement 192)
+        YC_ISSUED,
+        YC_REDEEMED,
+        YC_CLAWBACK,
+        YC_TRANSFER_REJECTED,
+        YC_TRANSFERS_ENABLED,
+        YC_TRANSFERS_DISABLED
     }
 
     public enum ActorType {

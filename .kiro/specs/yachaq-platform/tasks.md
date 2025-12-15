@@ -181,27 +181,28 @@
     - Test successful settlement, failed payout, fraud detection
     - _Requirements: 11.1, 11.4_
 
-- [ ] 15. YC Token Management
-  - [ ] 15.1 Implement YC credit accounting
+- [x] 15. YC Token Management
+  - [x] 15.1 Implement YC credit accounting
     - Track YC issuance and redemption
     - Enforce non-transferability by default
     - _Requirements: 192.1, 192.2_
-  - [ ] 15.2 Write property test for YC non-transferability
+  - [x] 15.2 Write property test for YC non-transferability
     - **Property 10: YC Non-Transferability**
     - **Validates: Requirements 192.1**
 
-- [ ] 16. On-Device Components (Client SDK)
-  - [ ] 16.1 Implement On-Device Data Store (ODS)
+- [x] 16. On-Device Components (Client SDK)
+  - [x] 16.1 Implement On-Device Data Store (ODS)
     - Create encrypted local database
     - Implement field-level query and redaction
     - _Requirements: 202.1, 202.4_
-  - [ ] 16.2 Implement On-Device Label Index (ODX)
+  - [x] 16.2 Implement On-Device Label Index (ODX)
     - Create privacy-safe index with coarse labels
     - Sign index updates with device key
     - _Requirements: 203.1, 203.3_
-  - [ ] 16.3 Write property test for edge-first data locality
+  - [x] 16.3 Write property test for edge-first data locality
     - **Property 12: Edge-First Data Locality**
-    - **Validates: Requirements 201.1**
+    - **Property 25: ODX Minimization**
+    - **Validates: Requirements 201.1, 201.2**
 
 - [ ] 17. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

@@ -2,6 +2,8 @@ package com.yachaq.api.settlement;
 
 import com.yachaq.api.audit.AuditService;
 import com.yachaq.core.domain.AuditReceipt;
+import com.yachaq.core.domain.AuditReceipt.ActorType;
+import com.yachaq.core.domain.AuditReceipt.EventType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -94,10 +96,10 @@ public class PayoutService {
         dsBalanceRepository.save(balance);
 
         // Generate audit receipt
-        AuditReceipt receipt = auditService.createReceipt(
-            AuditReceipt.EventType.PAYOUT_REQUESTED,
+        AuditReceipt receipt = auditService.appendReceipt(
+            EventType.PAYOUT_REQUESTED,
             dsId,
-            "ds",
+            ActorType.DS,
             instruction.getId(),
             "payout_instruction",
             "Payout requested: " + amount + " YC via " + method
@@ -150,10 +152,10 @@ public class PayoutService {
             dsBalanceRepository.save(balance);
 
             // Generate completion receipt (Requirement 11.5)
-            AuditReceipt receipt = auditService.createReceipt(
-                AuditReceipt.EventType.PAYOUT_COMPLETED,
+            AuditReceipt receipt = auditService.appendReceipt(
+                EventType.PAYOUT_COMPLETED,
                 instruction.getDsId(),
-                "system",
+                ActorType.SYSTEM,
                 instruction.getId(),
                 "payout_instruction",
                 "Payout completed: " + instruction.getAmount() + " YC"

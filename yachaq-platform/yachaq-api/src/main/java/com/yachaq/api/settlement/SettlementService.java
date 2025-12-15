@@ -3,8 +3,9 @@ package com.yachaq.api.settlement;
 import com.yachaq.api.audit.AuditService;
 import com.yachaq.api.escrow.EscrowService;
 import com.yachaq.core.domain.AuditReceipt;
+import com.yachaq.core.domain.AuditReceipt.ActorType;
+import com.yachaq.core.domain.AuditReceipt.EventType;
 import com.yachaq.core.domain.ConsentContract;
-import com.yachaq.core.domain.EscrowAccount;
 import com.yachaq.core.repository.ConsentContractRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,12 +67,13 @@ public class SettlementService {
         BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(unitCount));
 
         // Release funds from escrow
-        EscrowAccount escrow = escrowService.getEscrowByRequestId(contract.getRequestId());
-        if (escrow == null) {
+        var escrowOpt = escrowService.getEscrowByRequestId(contract.getRequestId());
+        if (escrowOpt.isEmpty()) {
             throw new SettlementException("Escrow not found for request: " + contract.getRequestId());
         }
+        var escrow = escrowOpt.get();
 
-        escrowService.releaseFunds(escrow.getId(), totalAmount);
+        escrowService.releaseEscrow(escrow.id(), totalAmount, contract.getDsId());
 
         // Update DS balance
         DSBalance dsBalance = getOrCreateDSBalance(contract.getDsId());
@@ -81,10 +83,10 @@ public class SettlementService {
         dsBalanceRepository.save(dsBalance);
 
         // Generate audit receipt (Requirement 11.2)
-        AuditReceipt receipt = auditService.createReceipt(
-            AuditReceipt.EventType.SETTLEMENT,
+        AuditReceipt receipt = auditService.appendReceipt(
+            EventType.SETTLEMENT,
             contract.getDsId(),
-            "ds",
+            ActorType.DS,
             consentContractId,
             "consent_contract",
             "Settlement: " + totalAmount + " YC for " + unitCount + " units"
