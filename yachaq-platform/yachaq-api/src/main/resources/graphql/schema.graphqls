@@ -1,0 +1,244 @@
+# YACHAQ Platform GraphQL Schema
+# Requirements: 28.1, 28.7
+
+type Query {
+    # Consent queries
+    consent(id: ID!): ConsentContract
+    consents(dsId: ID!, activeOnly: Boolean = false): [ConsentContract!]!
+    
+    # Audit queries
+    auditReceipt(id: ID!): AuditReceipt
+    auditReceipts(dsId: ID!, page: Int = 0, size: Int = 20): AuditReceiptPage!
+    auditReceiptsByResource(resourceId: ID!): [AuditReceipt!]!
+    
+    # Wallet queries
+    balance(dsId: ID!): Balance!
+    payoutHistory(dsId: ID!): [PayoutInstruction!]!
+    ycTransactions(dsId: ID!): [YCToken!]!
+    
+    # Query orchestrator
+    queryPlan(id: ID!): QueryPlan
+    timeCapsule(id: ID!): TimeCapsule
+    
+    # Matching
+    matchingStats(requestId: ID!): MatchingStats
+}
+
+type Mutation {
+    # Consent mutations
+    grantConsent(input: GrantConsentInput!): ConsentResult!
+    revokeConsent(id: ID!, dsId: ID!): RevocationResult!
+    
+    # Payout mutations
+    requestPayout(input: PayoutInput!): PayoutResult!
+    
+    # Query mutations
+    createQueryPlan(input: CreateQueryPlanInput!): QueryPlan!
+    dispatchQuery(input: DispatchQueryInput!): DispatchResult!
+    createTimeCapsule(input: CreateCapsuleInput!): TimeCapsule!
+}
+
+type Subscription {
+    # Real-time consent updates
+    consentUpdated(dsId: ID!): ConsentContract!
+    
+    # Real-time audit events
+    auditEvent(dsId: ID!): AuditReceipt!
+    
+    # Real-time balance updates
+    balanceUpdated(dsId: ID!): Balance!
+}
+
+# Types
+
+type ConsentContract {
+    id: ID!
+    dsId: ID!
+    requesterId: ID!
+    requestId: ID!
+    scopeHash: String!
+    purposeHash: String!
+    durationStart: String!
+    durationEnd: String!
+    compensationAmount: Float!
+    status: ConsentStatus!
+    blockchainAnchorHash: String
+    createdAt: String!
+    revokedAt: String
+}
+
+enum ConsentStatus {
+    ACTIVE
+    REVOKED
+    EXPIRED
+    COMPLETED
+}
+
+type ConsentResult {
+    contractId: ID!
+    dsId: ID!
+    requesterId: ID!
+    status: ConsentStatus!
+    auditReceiptId: ID!
+    createdAt: String!
+}
+
+type RevocationResult {
+    contractId: ID!
+    revokedAt: String!
+    auditReceiptId: ID!
+    tokensInvalidated: Int!
+}
+
+type AuditReceipt {
+    id: ID!
+    eventType: String!
+    actorId: ID!
+    actorType: String!
+    resourceId: ID
+    resourceType: String
+    description: String
+    previousHash: String
+    currentHash: String!
+    merkleProof: String
+    timestamp: String!
+}
+
+type AuditReceiptPage {
+    content: [AuditReceipt!]!
+    totalElements: Int!
+    totalPages: Int!
+    page: Int!
+    size: Int!
+}
+
+type Balance {
+    dsId: ID!
+    availableBalance: Float!
+    pendingBalance: Float!
+    totalEarned: Float!
+    totalPaidOut: Float!
+    currency: String!
+    ycBalance: Float!
+}
+
+type PayoutInstruction {
+    id: ID!
+    dsId: ID!
+    amount: Float!
+    currency: String!
+    method: PayoutMethod!
+    status: PayoutStatus!
+    createdAt: String!
+    completedAt: String
+}
+
+enum PayoutMethod {
+    BANK_TRANSFER
+    MOBILE_MONEY
+    CRYPTO
+    LOCAL_PROVIDER
+}
+
+enum PayoutStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+    CANCELLED
+}
+
+type PayoutResult {
+    payoutId: ID
+    dsId: ID!
+    amount: Float!
+    status: PayoutStatus!
+    message: String
+}
+
+type YCToken {
+    id: ID!
+    dsId: ID!
+    amount: Float!
+    operationType: String!
+    referenceId: ID
+    description: String
+    createdAt: String!
+}
+
+type QueryPlan {
+    id: ID!
+    requestId: ID!
+    consentContractId: ID!
+    scopeHash: String!
+    allowedTransforms: String
+    compensation: Float!
+    ttl: String!
+    status: String!
+    signature: String
+    signedAt: String
+}
+
+type TimeCapsule {
+    id: ID!
+    requestId: ID!
+    consentContractId: ID!
+    ttl: String!
+    status: String!
+    nonce: String!
+    createdAt: String!
+    deliveredAt: String
+}
+
+type DispatchResult {
+    queryId: ID!
+    dispatchedCount: Int!
+    status: String!
+}
+
+type MatchingStats {
+    requestId: ID!
+    totalEligible: Int!
+    totalMatched: Int!
+    cohortSize: Int!
+    kAnonymityMet: Boolean!
+}
+
+# Input types
+
+input GrantConsentInput {
+    dsId: ID!
+    requesterId: ID!
+    requestId: ID!
+    scopeHash: String!
+    purposeHash: String!
+    durationStart: String!
+    durationEnd: String!
+    compensationAmount: Float!
+}
+
+input PayoutInput {
+    dsId: ID!
+    amount: Float!
+    method: PayoutMethod!
+    destination: String!
+}
+
+input CreateQueryPlanInput {
+    requesterId: ID!
+    consentContractId: ID!
+    scope: String!
+    transforms: [String!]
+    ttlMinutes: Int!
+}
+
+input DispatchQueryInput {
+    planId: ID!
+    eligibleDeviceIds: [ID!]!
+    timeoutSeconds: Int!
+}
+
+input CreateCapsuleInput {
+    queryId: ID!
+    ttlMinutes: Int!
+}

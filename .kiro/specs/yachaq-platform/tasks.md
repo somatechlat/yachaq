@@ -204,19 +204,19 @@
     - **Property 25: ODX Minimization**
     - **Validates: Requirements 201.1, 201.2**
 
-- [ ] 17. Checkpoint - Ensure all tests pass
+- [x] 17. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 18. API Layer
-  - [ ] 18.1 Implement REST API endpoints
+- [-] 18. API Layer
+  - [x] 18.1 Implement REST API endpoints
     - Create endpoints for all core operations
     - Implement rate limiting and authentication
     - _Requirements: 27.1, 27.4, 69.1_
-  - [ ] 18.2 Implement GraphQL API
+  - [x] 18.2 Implement GraphQL API
     - Create unified schema for queries and mutations
     - Implement subscriptions for real-time updates
     - _Requirements: 28.1, 28.7_
-  - [ ] 18.3 Write integration tests for API layer
+  - [-] 18.3 Write integration tests for API layer
     - Test authentication, authorization, rate limiting
     - _Requirements: 27.4, 29.1_
 

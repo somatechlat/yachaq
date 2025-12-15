@@ -25,4 +25,6 @@ public interface PayoutInstructionRepository extends JpaRepository<PayoutInstruc
     
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PayoutInstruction p WHERE p.dsId = :dsId AND p.createdAt > :since AND p.status IN ('PENDING', 'PROCESSING', 'COMPLETED')")
     BigDecimal sumRecentPayouts(@Param("dsId") UUID dsId, @Param("since") Instant since);
+
+    List<PayoutInstruction> findByDsIdOrderByCreatedAtDesc(UUID dsId);
 }

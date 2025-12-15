@@ -267,7 +267,11 @@ public class QueryOrchestratorService {
     }
 
     // DTOs and Exceptions
-    public record DispatchResult(UUID planId, int deviceCount, Instant timeout, DispatchStatus status) {}
+    public record DispatchResult(UUID queryId, int dispatchedCount, Instant timeout, String status) {
+        public DispatchResult(UUID planId, int deviceCount, Instant timeout, DispatchStatus dispatchStatus) {
+            this(planId, deviceCount, timeout, dispatchStatus.name());
+        }
+    }
     public record CapsuleAccessResult(boolean granted, String message, byte[] payload) {}
     public record DeletionResult(UUID capsuleId, UUID receiptId, boolean success, String message) {}
 
@@ -291,5 +295,71 @@ public class QueryOrchestratorService {
 
     public static class SigningException extends RuntimeException {
         public SigningException(String message, Throwable cause) { super(message, cause); }
+    }
+
+    public static class CapsuleExpiredException extends RuntimeException {
+        public CapsuleExpiredException(String message) { super(message); }
+    }
+
+    // Additional methods for QueryController
+
+    /**
+     * Create a query plan (simplified version for controller).
+     */
+    @Transactional
+    public QueryPlan createQueryPlan(UUID requesterId, UUID consentContractId, 
+                                     String scope, List<String> transforms, int ttlMinutes) {
+        return createSignedQueryPlan(
+            requesterId,
+            consentContractId,
+            List.of(scope),
+            transforms != null ? transforms : List.of(),
+            BigDecimal.ZERO,
+            Duration.ofMinutes(ttlMinutes)
+        );
+    }
+
+    /**
+     * Get a query plan by ID.
+     */
+    public QueryPlan getQueryPlan(UUID planId) {
+        return queryPlanRepository.findById(planId)
+            .orElseThrow(() -> new QueryPlanNotFoundException("Plan not found: " + planId));
+    }
+
+    /**
+     * Dispatch query with timeout.
+     */
+    @Transactional
+    public DispatchResult dispatchQuery(UUID planId, Set<UUID> eligibleDeviceIds, Duration timeout) {
+        return dispatchQuery(planId, new ArrayList<>(eligibleDeviceIds));
+    }
+
+    /**
+     * Create time capsule from query ID.
+     */
+    @Transactional
+    public TimeCapsule createTimeCapsule(UUID queryId, int ttlMinutes) {
+        return createTimeCapsule(
+            queryId,
+            queryId, // Use queryId as consent contract ID for simplicity
+            new byte[0],
+            Duration.ofMinutes(ttlMinutes)
+        );
+    }
+
+    /**
+     * Get a time capsule by ID.
+     */
+    public TimeCapsule getTimeCapsule(UUID capsuleId) {
+        return timeCapsuleRepository.findById(capsuleId)
+            .orElseThrow(() -> new CapsuleNotFoundException("Capsule not found: " + capsuleId));
+    }
+
+    /**
+     * Check if a capsule is expired.
+     */
+    public boolean isCapsuleExpired(TimeCapsule capsule) {
+        return capsule.isExpired();
     }
 }

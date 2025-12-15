@@ -103,6 +103,9 @@ public class TimeCapsule {
     public Instant getTtl() { return ttl; }
     public void setTtl(Instant ttl) { this.ttl = ttl; }
 
+    // Alias for TTL (expiration time)
+    public Instant getExpiresAt() { return ttl; }
+
     public String getNonce() { return nonce; }
     public void setNonce(String nonce) { this.nonce = nonce; }
 

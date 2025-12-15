@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * Java 21 LTS + Spring Boot 3.4.x
  */
 @SpringBootApplication(scanBasePackages = "com.yachaq")
-@EntityScan(basePackages = "com.yachaq.core.domain")
+@EntityScan(basePackages = {"com.yachaq.core.domain", "com.yachaq.api"})
 @EnableJpaRepositories(basePackages = "com.yachaq")
 public class YachaqApiApplication {
 

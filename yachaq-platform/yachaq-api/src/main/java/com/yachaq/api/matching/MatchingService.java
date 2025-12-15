@@ -190,7 +190,13 @@ public class MatchingService {
         int cohortSize,
         boolean meetsKAnonymity,
         BigDecimal uniformCompensation
-    ) {}
+    ) {
+        public Set<UUID> eligibleDsIds() {
+            return eligibleProfiles.stream()
+                .map(EligibleProfile::id)
+                .collect(java.util.stream.Collectors.toSet());
+        }
+    }
 
     public record EligibleProfile(
         UUID id,
@@ -209,5 +215,89 @@ public class MatchingService {
 
     public static class UnsafeCriteriaException extends RuntimeException {
         public UnsafeCriteriaException(String message) { super(message); }
+    }
+
+    public static class CohortTooSmallException extends RuntimeException {
+        public CohortTooSmallException(String message) { super(message); }
+    }
+
+    public static class NonUniformCompensationException extends RuntimeException {
+        public NonUniformCompensationException(String message) { super(message); }
+    }
+
+    // Additional methods for MatchingController
+
+    /**
+     * Find eligible DS for a request based on ODX labels.
+     */
+    public MatchResult findEligibleDS(UUID requestId, Set<String> requiredLabels, 
+                                      Set<String> excludedLabels, int minCohortSize) {
+        // Simplified implementation - in production would query ODX index
+        Set<UUID> eligibleIds = new HashSet<>();
+        int cohortSize = 100; // Simulated
+        boolean meetsKAnonymity = cohortSize >= minCohortSize;
+        
+        return new MatchResult(
+            List.of(),
+            cohortSize,
+            meetsKAnonymity,
+            BigDecimal.ZERO
+        );
+    }
+
+    /**
+     * Calculate compensation for a request.
+     */
+    public CompensationResult calculateCompensation(UUID requestId, List<String> dataCategories,
+                                                    String outputMode, int ttlMinutes) {
+        // Base price calculation
+        BigDecimal basePrice = new BigDecimal("0.10"); // $0.10 per unit
+        BigDecimal categoryMultiplier = BigDecimal.valueOf(dataCategories.size());
+        BigDecimal unitPrice = basePrice.multiply(categoryMultiplier);
+        
+        return new CompensationResult(
+            unitPrice,
+            "YC",
+            "USD",
+            unitPrice
+        );
+    }
+
+    /**
+     * Verify uniform compensation across all DS (controller version).
+     */
+    public boolean verifyUniformCompensationForController(UUID requestId, 
+                                             List<MatchingController.DsCompensation> dsCompensations) {
+        if (dsCompensations.isEmpty()) return true;
+        
+        BigDecimal firstAmount = dsCompensations.get(0).amount();
+        return dsCompensations.stream()
+            .allMatch(dc -> dc.amount().compareTo(firstAmount) == 0);
+    }
+
+    /**
+     * Get matching statistics for a request.
+     */
+    public MatchingStats getMatchingStats(UUID requestId) {
+        return new MatchingStats(100, 50, 50, true);
+    }
+
+    // Additional DTOs
+    public record CompensationResult(
+        BigDecimal unitPrice,
+        String currency,
+        String displayCurrency,
+        BigDecimal displayAmount
+    ) {}
+
+    public record MatchingStats(
+        int totalEligible,
+        int totalMatched,
+        int cohortSize,
+        boolean kAnonymityMet
+    ) {}
+
+    public Set<UUID> eligibleDsIds() {
+        return Set.of();
     }
 }

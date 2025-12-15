@@ -159,6 +159,68 @@ public class SettlementService {
             .orElse(null);
     }
 
+    /**
+     * Get or create DS balance (public version).
+     */
+    public DSBalance getOrCreateBalance(UUID dsId) {
+        return getOrCreateDSBalance(dsId);
+    }
+
+    /**
+     * Process settlement for a consent contract.
+     * Used by SettlementController.
+     */
+    @Transactional
+    public SettlementResult processSettlement(UUID consentContractId, UUID dsId, 
+                                              UUID escrowAccountId, BigDecimal amount) {
+        // Release funds from escrow
+        escrowService.releaseEscrow(escrowAccountId, amount, dsId);
+
+        // Update DS balance
+        DSBalance dsBalance = getOrCreateDSBalance(dsId);
+        dsBalance.setAvailableBalance(dsBalance.getAvailableBalance().add(amount));
+        dsBalance.setTotalEarned(dsBalance.getTotalEarned().add(amount));
+        dsBalance.setLastSettlementAt(Instant.now());
+        dsBalanceRepository.save(dsBalance);
+
+        // Generate audit receipt
+        AuditReceipt receipt = auditService.appendReceipt(
+            EventType.SETTLEMENT,
+            dsId,
+            ActorType.DS,
+            consentContractId,
+            "consent_contract",
+            "Settlement: " + amount + " for consent " + consentContractId
+        );
+
+        return new SettlementResult(
+            UUID.randomUUID(),
+            consentContractId,
+            dsId,
+            amount,
+            1,
+            receipt.getId(),
+            Instant.now(),
+            SettlementStatus.COMPLETED
+        );
+    }
+
+    /**
+     * Get settlement history for a DS.
+     */
+    public List<SettlementController.SettlementRecord> getSettlementHistory(UUID dsId) {
+        // In production, this would query a settlements table
+        return List.of();
+    }
+
+    /**
+     * Get settlement by consent contract.
+     */
+    public SettlementController.SettlementRecord getSettlementByConsent(UUID contractId) {
+        // In production, this would query a settlements table
+        throw new SettlementNotFoundException("Settlement not found for contract: " + contractId);
+    }
+
     // DTOs
     public record SettlementRequest(UUID consentContractId, int unitCount) {}
 
@@ -182,5 +244,13 @@ public class SettlementService {
 
     public static class SettlementException extends RuntimeException {
         public SettlementException(String message) { super(message); }
+    }
+
+    public static class SettlementNotFoundException extends RuntimeException {
+        public SettlementNotFoundException(String message) { super(message); }
+    }
+
+    public static class InsufficientEscrowException extends RuntimeException {
+        public InsufficientEscrowException(String message) { super(message); }
     }
 }

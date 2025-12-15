@@ -279,4 +279,37 @@ public class PayoutService {
     public static class PayoutException extends RuntimeException {
         public PayoutException(String message) { super(message); }
     }
+
+    public static class InsufficientBalanceException extends RuntimeException {
+        public InsufficientBalanceException(String message) { super(message); }
+    }
+
+    public static class PayoutBlockedException extends RuntimeException {
+        public PayoutBlockedException(String message) { super(message); }
+    }
+
+    // Additional methods for WalletController
+
+    /**
+     * Create a payout instruction (simplified for controller).
+     */
+    @Transactional
+    public PayoutInstruction createPayoutInstruction(UUID dsId, BigDecimal amount, 
+                                                     PayoutMethod method, String destination) {
+        PayoutResult result = requestPayout(dsId, amount, method, destination);
+        if (result.status() == PayoutStatus.FAILED) {
+            if (result.message().contains("Insufficient")) {
+                throw new InsufficientBalanceException(result.message());
+            }
+            throw new PayoutBlockedException(result.message());
+        }
+        return payoutInstructionRepository.findById(result.payoutId()).orElseThrow();
+    }
+
+    /**
+     * Get payout history for a DS.
+     */
+    public java.util.List<PayoutInstruction> getPayoutHistory(UUID dsId) {
+        return payoutInstructionRepository.findByDsIdOrderByCreatedAtDesc(dsId);
+    }
 }

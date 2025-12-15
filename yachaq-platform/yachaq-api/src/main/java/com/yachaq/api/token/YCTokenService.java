@@ -261,6 +261,13 @@ public class YCTokenService {
     }
 
     /**
+     * Get tokens by holder (alias for getTransactionHistory).
+     */
+    public List<YCToken> getTokensByHolder(UUID dsId) {
+        return getTransactionHistory(dsId);
+    }
+
+    /**
      * Reconcile YC against escrow.
      * 
      * Requirements: 192.4
