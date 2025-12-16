@@ -178,7 +178,50 @@ public class AuditReceipt {
         VIOLATION_RESOLVED,
         PENALTY_APPLIED,
         RETENTION_CHECK,
-        DELETION_TRIGGERED
+        DELETION_TRIGGERED,
+        // Model-Data Lineage events (Requirement 230)
+        MODEL_TRAINING_STARTED,
+        MODEL_TRAINING_COMPLETED,
+        MODEL_TRAINING_FAILED,
+        DS_CONTRIBUTION_RECORDED,
+        // Canonical Event System events (Requirement 191)
+        // Request lifecycle
+        REQUEST_MATCHED,
+        REQUEST_COMPLETED,
+        REQUEST_CANCELLED,
+        // Match events
+        MATCH_COMPLETED,
+        MATCH_FAILED,
+        // Token events
+        TOKEN_ISSUED,
+        TOKEN_REVOKED,
+        TOKEN_EXPIRED,
+        // P2P events
+        P2P_INTENT_CREATED,
+        P2P_PAYMENT_CONFIRMED,
+        P2P_DELIVERY_COMPLETED,
+        // Index events
+        INDEX_UPDATED,
+        INDEX_SYNCED,
+        // Account events (Requirement 225-227)
+        ACCOUNT_CREATED,
+        ACCOUNT_ACTIVATED,
+        ACCOUNT_SUSPENDED,
+        ACCOUNT_BANNED,
+        KYB_VERIFICATION_COMPLETED,
+        FLEET_LIMIT_UPDATED,
+        // Guardian events
+        GUARDIAN_RELATIONSHIP_CREATED,
+        GUARDIAN_RELATIONSHIP_VERIFIED,
+        GUARDIAN_RELATIONSHIP_REVOKED,
+        // Privacy Governor events (Requirement 204)
+        PRB_ALLOCATED,
+        PRB_LOCKED,
+        PRB_CONSUMED,
+        PRB_EXHAUSTED,
+        COHORT_CHECK_PASSED,
+        COHORT_CHECK_BLOCKED,
+        LINKAGE_RATE_LIMITED
     }
 
     public enum ActorType {
