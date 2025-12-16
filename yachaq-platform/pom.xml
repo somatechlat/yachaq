@@ -54,6 +54,7 @@
         <module>yachaq-market</module>
         <module>yachaq-iot</module>
         <module>yachaq-blockchain</module>
+        <module>yachaq-node</module>
         <module>yachaq-api</module>
         <module>yachaq-gateway</module>
     </modules>

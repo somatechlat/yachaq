@@ -8,8 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,16 +23,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 class ScreeningServicePropertyTest {
-
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry r) {
-        r.add("spring.datasource.url", () -> "jdbc:postgresql://localhost:55432/yachaq");
-        r.add("spring.datasource.username", () -> "yachaq");
-        r.add("spring.datasource.password", () -> "yachaq");
-        r.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        r.add("spring.flyway.enabled", () -> "false");
-        r.add("yachaq.jwt.secret", () -> "test-secret-key-minimum-32-characters-long-for-testing");
-    }
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;

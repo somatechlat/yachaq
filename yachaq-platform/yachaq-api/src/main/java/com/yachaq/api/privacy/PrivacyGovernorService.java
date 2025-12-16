@@ -53,16 +53,7 @@ public class PrivacyGovernorService {
     private final double similarityThreshold;
     private final String rulesetVersion;
 
-    public PrivacyGovernorService(
-            PrivacyRiskBudgetRepository prbRepository,
-            AuditService auditService,
-            NamedParameterJdbcTemplate jdbcTemplate) {
-        this(prbRepository, auditService, jdbcTemplate, 
-             DEFAULT_K_MIN, DEFAULT_LINKAGE_WINDOW_HOURS, 
-             DEFAULT_LINKAGE_MAX_SIMILAR_QUERIES, DEFAULT_SIMILARITY_THRESHOLD,
-             DEFAULT_RULESET_VERSION);
-    }
-
+    @org.springframework.beans.factory.annotation.Autowired
     public PrivacyGovernorService(
             PrivacyRiskBudgetRepository prbRepository,
             AuditService auditService,

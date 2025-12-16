@@ -15,8 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -38,17 +36,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 class ConsentObligationPropertyTest {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> "jdbc:postgresql://localhost:55432/yachaq");
-        registry.add("spring.datasource.username", () -> "yachaq");
-        registry.add("spring.datasource.password", () -> "yachaq");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        registry.add("spring.flyway.enabled", () -> "false");
-        registry.add("yachaq.jwt.secret", () -> "test-secret-key-minimum-32-characters-long-for-testing");
-        registry.add("yachaq.security.platform-key-id", () -> "test-platform-key-id");
-    }
 
     @Autowired
     private ConsentObligationService obligationService;

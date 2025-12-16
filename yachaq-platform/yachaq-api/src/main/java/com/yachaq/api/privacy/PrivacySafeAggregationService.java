@@ -39,10 +39,14 @@ public class PrivacySafeAggregationService {
     private final double defaultEpsilon;
     private final double maxPrivacyBudget;
 
+    /**
+     * Constructor for testing without dependencies.
+     */
     public PrivacySafeAggregationService(AuditService auditService) {
         this(auditService, DEFAULT_K_MIN, DEFAULT_EPSILON, DEFAULT_MAX_PRIVACY_BUDGET);
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
     public PrivacySafeAggregationService(
             AuditService auditService,
             @Value("${yachaq.privacy.k-min:50}") int kMin,

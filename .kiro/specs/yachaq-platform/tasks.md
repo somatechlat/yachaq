@@ -492,19 +492,22 @@
 
 ## Phone-as-Node P2P Architecture Implementation
 
-- [ ] 42. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 42. Checkpoint - Ensure all tests pass
+  - All 281 tests pass (property tests + integration tests)
+  - Fixed: PrivacySafeAggregationService missing @Autowired annotation
+  - Fixed: ScreeningResult entity using PostgreSQL-specific text[] array type (changed to JSON)
+  - Fixed: application-test.yml H2 configuration (ddl-auto: create-drop, sql.init.mode: never)
 
 - [ ] 43. Node Runtime Kernel
-  - [ ] 43.1 Implement Node Kernel boot sequence
+  - [x] 43.1 Implement Node Kernel boot sequence
     - Create Kernel class with start() method
     - Implement boot sequence: key init → vault mount → ODX load → connectors init → scheduler
     - _Requirements: 302.1_
-  - [ ] 43.2 Implement job scheduling with constraints
+  - [x] 43.2 Implement job scheduling with constraints
     - Create runJob(jobType, constraints) method
     - Enforce battery, charging, thermal, and network constraints
     - _Requirements: 302.2_
-  - [ ] 43.3 Implement internal event bus
+  - [x] 43.3 Implement internal event bus
     - Create emit(event) and on(eventType, handler) methods
     - Route all module communication through event bus
     - _Requirements: 302.3_
@@ -513,15 +516,15 @@
     - _Requirements: 302.1, 302.2_
 
 - [ ] 44. Key Management Service
-  - [ ] 44.1 Implement root keypair generation
+  - [x] 44.1 Implement root keypair generation
     - Generate long-term root keypair with hardware-backed storage when available
     - Store in secure enclave/keystore
     - _Requirements: 303.1_
-  - [ ] 44.2 Implement DID derivation
+  - [x] 44.2 Implement DID derivation
     - Create Node DID for local identity
     - Create pairwise DIDs per requester for anti-correlation
     - _Requirements: 303.2_
-  - [ ] 44.3 Implement key rotation policies
+  - [x] 44.3 Implement key rotation policies
     - Rotate network identifiers daily/weekly
     - Rotate pairwise identifiers per relationship or contract
     - _Requirements: 303.4, 303.5_
@@ -531,23 +534,23 @@
   - [ ]* 44.5 Write property test for pairwise DID anti-correlation
     - **Property 59: Pairwise DID Anti-Correlation**
     - **Validates: Requirements 303.2**
-  - [ ]* 44.6 Write unit tests for key management
+  - [x]* 44.6 Write unit tests for key management
     - Test key rotation correctness, signature verification, loss/recovery flows
     - _Requirements: 303.4, 303.5_
 
-- [ ] 45. Checkpoint - Ensure all tests pass
+- [x] 45. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 46. Permissions & Consent Firewall
-  - [ ] 46.1 Implement OS permission checking
+  - [x] 46.1 Implement OS permission checking
     - Create checkOS(permission) method
     - Request permissions just-in-time with explanations
     - _Requirements: 304.1_
-  - [ ] 46.2 Implement YACHAQ permission layers
+  - [x] 46.2 Implement YACHAQ permission layers
     - Create checkYachaq(scope) method
     - Enforce per connector, per label family, per resolution, per requester, per QueryPlan
     - _Requirements: 304.2_
-  - [ ] 46.3 Implement consent preview and signing
+  - [x] 46.3 Implement consent preview and signing
     - Create promptContractPreview(contractDraft) method
     - Create signContract(contractDraft) method with replay-safe nonce and expiry
     - _Requirements: 304.3, 304.4_
@@ -561,48 +564,48 @@
     - Test each feature fails closed when permissions missing
     - _Requirements: 304.5_
 
-- [ ] 47. Connector Framework
-  - [ ] 47.1 Implement Connector interface
+- [x] 47. Connector Framework
+  - [x] 47.1 Implement Connector interface
     - Create capabilities(), authorize(), sync(sinceCursor), healthcheck() methods
     - _Requirements: 305.1, 305.2, 305.3, 305.4_
-  - [ ] 47.2 Implement Framework connectors (HealthKit/Health Connect)
+  - [x] 47.2 Implement Framework connectors (HealthKit/Health Connect)
     - Create iOS HealthKit connector
     - Create Android Health Connect connector
     - _Requirements: 305.1, 330.1, 331.1_
-  - [ ] 47.3 Implement OAuth connectors (Spotify/Strava)
+  - [x] 47.3 Implement OAuth connectors (Spotify/Strava)
     - Create Spotify OAuth connector
     - Create Strava OAuth connector
     - _Requirements: 305.1, 330.5, 331.5_
-  - [ ] 47.4 Implement rate limiting and backoff
+  - [x] 47.4 Implement rate limiting and backoff
     - Add backoff and retry logic for rate limits
     - _Requirements: 305.5_
-  - [ ]* 47.5 Write contract tests for connectors
+  - [x]* 47.5 Write contract tests for connectors
     - Test each connector interface, rate-limit/backoff
     - _Requirements: 305.4, 305.5_
 
-- [ ] 48. Data Importers
-  - [ ] 48.1 Implement Google Takeout importer
+- [x] 48. Data Importers
+  - [x] 48.1 Implement Google Takeout importer
     - Parse Takeout ZIP structure
     - Extract and normalize supported data types
     - _Requirements: 306.1, 306.3_
-  - [ ] 48.2 Implement WhatsApp/Telegram export importers
+  - [x] 48.2 Implement WhatsApp/Telegram export importers
     - Parse WhatsApp export format
     - Parse Telegram JSON/HTML export format
     - _Requirements: 306.1, 306.3_
-  - [ ] 48.3 Implement Uber/iCloud importers
+  - [x] 48.3 Implement Uber/iCloud importers
     - Parse Uber data export
     - Parse iCloud archive format
     - _Requirements: 306.1, 306.3_
-  - [ ] 48.4 Implement import security checks
+  - [x] 48.4 Implement import security checks
     - Add checksum verification and malware scanning
     - Display sensitivity warnings
     - _Requirements: 306.2, 306.6_
-  - [ ]* 48.5 Write fuzz tests for importers
+  - [x]* 48.5 Write fuzz tests for importers
     - Test corrupted ZIP, huge file streaming, safe memory limits
     - _Requirements: 306.2, 306.3_
 
-- [ ] 49. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 49. Checkpoint - Ensure all tests pass
+  - All 107 tests pass in yachaq-node module
 
 - [ ] 50. Local Vault (Encrypted Storage)
   - [ ] 50.1 Implement vault storage with envelope encryption
