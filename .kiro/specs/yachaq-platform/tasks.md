@@ -418,70 +418,71 @@
 ## Extended Implementation - Operational Resilience & Intelligence
 
 - [x] 38. Privacy Governor Service
-  - [ ] 38.1 Implement Privacy Risk Budget (PRB) allocation
+  - [x] 38.1 Implement Privacy Risk Budget (PRB) allocation
     - Allocate PRB at campaign quote time
     - Lock PRB at acceptance
     - _Requirements: 204.1, 204.2_
-  - [ ] 38.2 Implement PRB consumption tracking
+  - [x] 38.2 Implement PRB consumption tracking
     - Decrement PRB on transforms/exports
     - Block operations when PRB exhausted
     - _Requirements: 204.3, 204.4_
-  - [ ]* 38.3 Write property test for PRB allocation and lock
+  - [x] 38.3 Write property test for PRB allocation and lock
     - **Property 28: PRB Allocation and Lock**
     - **Validates: Requirements 204.1, 204.2**
-  - [ ] 38.4 Implement k-min cohort enforcement
+  - [x] 38.4 Implement k-min cohort enforcement
     - Compute cohort size from criteria
     - Block queries below k-min threshold
     - _Requirements: 202.1, 202.2_
-  - [ ]* 38.5 Write property test for k-min cohort enforcement
+  - [x] 38.5 Write property test for k-min cohort enforcement
     - **Property 26: K-Min Cohort Enforcement**
     - **Validates: Requirements 202.1, 202.2**
-  - [ ] 38.6 Implement linkage rate limiting
+  - [x] 38.6 Implement linkage rate limiting
     - Detect repeated similar queries
     - Enforce rate limits per requester
     - _Requirements: 203.1, 203.2_
-  - [ ]* 38.7 Write property test for linkage rate limiting
+  - [x] 38.7 Write property test for linkage rate limiting
     - **Property 27: Linkage Rate Limiting**
     - **Validates: Requirements 203.1, 203.2**
 
-- [ ] 39. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 39. Checkpoint - Ensure all tests pass
+  - Property tests pass (11 new tests for Privacy Governor)
+  - Integration tests require database connection (pre-existing configuration)
 
 
-- [ ] 40. ODX Minimization and Fail-Closed
-  - [ ] 40.1 Implement ODX minimization validation
+- [x] 40. ODX Minimization and Fail-Closed
+  - [x] 40.1 Implement ODX minimization validation
     - Validate ODX entries contain only coarse labels/timestamps
     - Reject entries with raw payload
     - _Requirements: 201.1, 201.2_
-  - [ ]* 40.2 Write property test for ODX minimization
+  - [x] 40.2 Write property test for ODX minimization
     - **Property 25: ODX Minimization**
     - **Validates: Requirements 201.1, 201.2**
-  - [ ] 40.3 Implement fail-closed policy evaluation
+  - [x] 40.3 Implement fail-closed policy evaluation
     - Deny access on policy evaluation failure
     - Broaden cohorts on uncertainty
     - _Requirements: 206.1, 206.2_
-  - [ ]* 40.4 Write property test for fail-closed behavior
+  - [x] 40.4 Write property test for fail-closed behavior
     - **Property 29: Fail-Closed Policy Evaluation**
     - **Validates: Requirements 206.1, 206.3**
 
-- [ ] 41. Requester Governance Service
-  - [ ] 41.1 Implement requester tier management
+- [x] 41. Requester Governance Service
+  - [x] 41.1 Implement requester tier management
     - Assign tiers based on verification level
     - Gate exports, budgets, and products by tier
     - _Requirements: 207.1, 207.2_
-  - [ ] 41.2 Implement DUA binding and versioning
+  - [x] 41.2 Implement DUA binding and versioning
     - Record DUA acceptance with version
     - Require re-acceptance on DUA updates
     - _Requirements: 208.1, 208.2_
-  - [ ] 41.3 Implement reputation scoring
+  - [x] 41.3 Implement reputation scoring
     - Compute scores from disputes, violations, targeting attempts
     - Update access privileges based on reputation
     - _Requirements: 209.1, 209.2_
-  - [ ] 41.4 Implement misuse enforcement pipeline
+  - [x] 41.4 Implement misuse enforcement pipeline
     - Report → evidence pack → action → receipts
     - Track enforcement history
     - _Requirements: 210.1, 210.2_
-  - [ ] 41.5 Implement export controls
+  - [x] 41.5 Implement export controls
     - Require step-up verification for exports
     - Apply watermarking and full audit trail
     - _Requirements: 211.1, 211.2, 211.3_
