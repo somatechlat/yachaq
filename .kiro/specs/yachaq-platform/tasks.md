@@ -347,16 +347,16 @@
     - **Property 23: Consent Obligation Specification**
     - **Validates: Requirements 223.1**
 
-- [ ] 31. Multi-Device Support
-  - [ ] 31.1 Implement device linking
+- [x] 31. Multi-Device Support
+  - [x] 31.1 Implement device linking
     - Link multiple devices to single DS identity
     - Enforce per-account-type device limits
     - _Requirements: 224.1, 224.3_
-  - [ ] 31.2 Implement multi-device query routing
+  - [x] 31.2 Implement multi-device query routing
     - Route queries to appropriate device(s) based on data location
     - Aggregate responses from multiple devices
     - _Requirements: 224.2, 224.6_
-  - [ ] 31.3 Write property test for multi-device identity linking
+  - [x] 31.3 Write property test for multi-device identity linking
     - **Property 24: Multi-Device Identity Linking**
     - **Validates: Requirements 224.1**
 
