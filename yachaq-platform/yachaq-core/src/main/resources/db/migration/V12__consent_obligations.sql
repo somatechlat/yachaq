@@ -83,12 +83,12 @@ CREATE TABLE IF NOT EXISTS obligation_violations (
     version BIGINT NOT NULL DEFAULT 0
 );
 
-CREATE INDEX idx_violation_contract ON obligation_violations(consent_contract_id);
-CREATE INDEX idx_violation_obligation ON obligation_violations(obligation_id);
-CREATE INDEX idx_violation_type ON obligation_violations(violation_type);
-CREATE INDEX idx_violation_status ON obligation_violations(status);
-CREATE INDEX idx_violation_severity ON obligation_violations(severity);
-CREATE INDEX idx_violation_detected ON obligation_violations(detected_at);
+CREATE INDEX idx_oblig_violation_contract ON obligation_violations(consent_contract_id);
+CREATE INDEX idx_oblig_violation_obligation ON obligation_violations(obligation_id);
+CREATE INDEX idx_oblig_violation_type ON obligation_violations(violation_type);
+CREATE INDEX idx_oblig_violation_status ON obligation_violations(status);
+CREATE INDEX idx_oblig_violation_severity ON obligation_violations(severity);
+CREATE INDEX idx_oblig_violation_detected ON obligation_violations(detected_at);
 
 -- Obligation audit log for monitoring
 CREATE TABLE IF NOT EXISTS obligation_audit_log (

@@ -13,11 +13,11 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "obligation_violations", indexes = {
-    @Index(name = "idx_violation_contract", columnList = "consent_contract_id"),
-    @Index(name = "idx_violation_obligation", columnList = "obligation_id"),
-    @Index(name = "idx_violation_type", columnList = "violation_type"),
-    @Index(name = "idx_violation_status", columnList = "status"),
-    @Index(name = "idx_violation_severity", columnList = "severity")
+    @Index(name = "idx_oblig_violation_contract", columnList = "consent_contract_id"),
+    @Index(name = "idx_oblig_violation_obligation", columnList = "obligation_id"),
+    @Index(name = "idx_oblig_violation_type", columnList = "violation_type"),
+    @Index(name = "idx_oblig_violation_status", columnList = "status"),
+    @Index(name = "idx_oblig_violation_severity", columnList = "severity")
 })
 public class ObligationViolation {
 

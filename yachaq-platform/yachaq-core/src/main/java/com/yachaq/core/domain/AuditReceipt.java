@@ -168,7 +168,17 @@ public class AuditReceipt {
         SECURE_DELETION_COMPLETED,
         SECURE_DELETION_VERIFIED,
         SECURE_DELETION_FAILED,
-        DECRYPTION_BLOCKED_KEY_DESTROYED
+        DECRYPTION_BLOCKED_KEY_DESTROYED,
+        // Consent Obligation events (Requirement 223)
+        OBLIGATION_CREATED,
+        OBLIGATION_CHECKED,
+        OBLIGATION_SATISFIED,
+        OBLIGATION_VIOLATED,
+        VIOLATION_ACKNOWLEDGED,
+        VIOLATION_RESOLVED,
+        PENALTY_APPLIED,
+        RETENTION_CHECK,
+        DELETION_TRIGGERED
     }
 
     public enum ActorType {

@@ -334,16 +334,16 @@
     - **Property 19: Secure Deletion Verification**
     - **Validates: Requirements 222.1, 222.2**
 
-- [-] 30. Consent Obligations
-  - [-] 30.1 Implement obligation specification
+- [x] 30. Consent Obligations
+  - [x] 30.1 Implement obligation specification
     - Include data handling obligations in consent contracts
     - Specify retention limits, usage restrictions, deletion requirements
     - _Requirements: 223.1, 223.2_
-  - [ ] 30.2 Implement obligation monitoring
+  - [x] 30.2 Implement obligation monitoring
     - Detect obligation violations through audit
     - Enforce penalties for violations
     - _Requirements: 223.3, 223.4_
-  - [ ] 30.3 Write property test for consent obligation specification
+  - [x] 30.3 Write property test for consent obligation specification
     - **Property 23: Consent Obligation Specification**
     - **Validates: Requirements 223.1**
 
