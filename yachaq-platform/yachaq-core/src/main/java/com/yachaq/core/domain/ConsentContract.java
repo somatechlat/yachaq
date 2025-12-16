@@ -69,6 +69,103 @@ public class ConsentContract {
     @Column(name = "revoked_at")
     private Instant revokedAt;
 
+    /**
+     * JSON array of exact permitted field names.
+     * Property 17: Field-Level Access Enforcement
+     * Validates: Requirements 219.1
+     */
+    @Column(name = "permitted_fields", columnDefinition = "TEXT")
+    private String permittedFields;
+
+    /**
+     * JSON object mapping sensitive fields to explicit consent status.
+     * Validates: Requirements 219.3
+     */
+    @Column(name = "sensitive_field_consents", columnDefinition = "TEXT")
+    private String sensitiveFieldConsents;
+
+    /**
+     * JSON array of allowed transform names.
+     * Property 18: Transform Restriction Enforcement
+     * Validates: Requirements 220.1
+     */
+    @Column(name = "allowed_transforms", columnDefinition = "TEXT")
+    private String allowedTransforms;
+
+    /**
+     * JSON object with transform chaining validation rules.
+     * Validates: Requirements 220.3
+     */
+    @Column(name = "transform_chain_rules", columnDefinition = "TEXT")
+    private String transformChainRules;
+
+    /**
+     * JSON array of output restriction types.
+     * Validates: Requirements 221.1, 221.2
+     */
+    @Column(name = "output_restrictions", columnDefinition = "TEXT")
+    private String outputRestrictions;
+
+    /**
+     * Delivery mode for data access.
+     * Validates: Requirements 221.3
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_mode")
+    private DeliveryMode deliveryMode = DeliveryMode.CLEAN_ROOM;
+
+    public enum DeliveryMode {
+        CLEAN_ROOM,  // Default - controlled environment
+        DIRECT,      // Direct delivery (requires special permissions)
+        ENCRYPTED    // Encrypted delivery with key escrow
+    }
+
+    /**
+     * Maximum number of days data can be retained.
+     * Property 23: Consent Obligation Specification
+     * Validates: Requirements 223.1
+     */
+    @Column(name = "retention_days")
+    private Integer retentionDays;
+
+    /**
+     * Retention policy type.
+     * Validates: Requirements 223.1
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "retention_policy")
+    private RetentionPolicy retentionPolicy;
+
+    public enum RetentionPolicy {
+        DELETE_AFTER_USE,      // Delete immediately after use
+        DELETE_AFTER_PERIOD,   // Delete after retention_days
+        DELETE_ON_REVOCATION,  // Delete when consent is revoked
+        DELETE_ON_REQUEST      // Delete only on explicit DS request
+    }
+
+    /**
+     * JSON array of usage restrictions.
+     * Property 23: Consent Obligation Specification
+     * Validates: Requirements 223.1
+     */
+    @Column(name = "usage_restrictions", columnDefinition = "TEXT")
+    private String usageRestrictions;
+
+    /**
+     * JSON object specifying deletion requirements.
+     * Property 23: Consent Obligation Specification
+     * Validates: Requirements 223.1
+     */
+    @Column(name = "deletion_requirements", columnDefinition = "TEXT")
+    private String deletionRequirements;
+
+    /**
+     * Hash of all obligation specifications for integrity verification.
+     * Validates: Requirements 223.2
+     */
+    @Column(name = "obligation_hash")
+    private String obligationHash;
+
     @NotNull
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -147,6 +244,58 @@ public class ConsentContract {
 
     public void setBlockchainAnchorHash(String hash) {
         this.blockchainAnchorHash = hash;
+    }
+
+    // Field-level access getters and setters
+    public String getPermittedFields() { return permittedFields; }
+    public void setPermittedFields(String permittedFields) { this.permittedFields = permittedFields; }
+    
+    public String getSensitiveFieldConsents() { return sensitiveFieldConsents; }
+    public void setSensitiveFieldConsents(String sensitiveFieldConsents) { 
+        this.sensitiveFieldConsents = sensitiveFieldConsents; 
+    }
+
+    // Transform restriction getters and setters
+    public String getAllowedTransforms() { return allowedTransforms; }
+    public void setAllowedTransforms(String allowedTransforms) { this.allowedTransforms = allowedTransforms; }
+    
+    public String getTransformChainRules() { return transformChainRules; }
+    public void setTransformChainRules(String transformChainRules) { 
+        this.transformChainRules = transformChainRules; 
+    }
+
+    // Output restriction getters and setters
+    public String getOutputRestrictions() { return outputRestrictions; }
+    public void setOutputRestrictions(String outputRestrictions) { this.outputRestrictions = outputRestrictions; }
+    
+    public DeliveryMode getDeliveryMode() { return deliveryMode; }
+    public void setDeliveryMode(DeliveryMode deliveryMode) { this.deliveryMode = deliveryMode; }
+
+    // Obligation getters and setters - Property 23
+    public Integer getRetentionDays() { return retentionDays; }
+    public void setRetentionDays(Integer retentionDays) { this.retentionDays = retentionDays; }
+    
+    public RetentionPolicy getRetentionPolicy() { return retentionPolicy; }
+    public void setRetentionPolicy(RetentionPolicy retentionPolicy) { this.retentionPolicy = retentionPolicy; }
+    
+    public String getUsageRestrictions() { return usageRestrictions; }
+    public void setUsageRestrictions(String usageRestrictions) { this.usageRestrictions = usageRestrictions; }
+    
+    public String getDeletionRequirements() { return deletionRequirements; }
+    public void setDeletionRequirements(String deletionRequirements) { this.deletionRequirements = deletionRequirements; }
+    
+    public String getObligationHash() { return obligationHash; }
+    public void setObligationHash(String obligationHash) { this.obligationHash = obligationHash; }
+
+    /**
+     * Checks if this contract has all required obligations specified.
+     * Property 23: Consent Obligation Specification
+     */
+    public boolean hasRequiredObligations() {
+        return retentionDays != null && retentionDays > 0 &&
+               retentionPolicy != null &&
+               usageRestrictions != null && !usageRestrictions.isBlank() &&
+               deletionRequirements != null && !deletionRequirements.isBlank();
     }
 
     public enum ConsentStatus {

@@ -120,6 +120,7 @@ public class AuditReceipt {
         PAYOUT_COMPLETED,
         DEVICE_ENROLLED,
         DEVICE_REMOVED,
+        DEVICE_ATTESTATION,
         PROFILE_CREATED,
         PROFILE_UPDATED,
         REQUEST_CREATED,
@@ -135,7 +136,39 @@ public class AuditReceipt {
         YC_CLAWBACK,
         YC_TRANSFER_REJECTED,
         YC_TRANSFERS_ENABLED,
-        YC_TRANSFERS_DISABLED
+        YC_TRANSFERS_DISABLED,
+        // Query Plan Security events (Requirement 216)
+        QUERY_PLAN_SIGNED,
+        QUERY_PLAN_VERIFIED,
+        QUERY_PLAN_REJECTED,
+        // Replay Protection events (Requirement 218)
+        NONCE_REGISTERED,
+        NONCE_VALIDATED,
+        CAPSULE_REPLAY_REJECTED,
+        // Field-Level Access events (Requirement 219)
+        FIELD_ACCESS_GRANTED,
+        FIELD_ACCESS_DENIED,
+        UNAUTHORIZED_FIELD_ACCESS_ATTEMPT,
+        // Transform Restriction events (Requirement 220)
+        TRANSFORM_EXECUTED,
+        TRANSFORM_REJECTED,
+        UNAUTHORIZED_TRANSFORM_ATTEMPT,
+        // Output Restriction events (Requirement 221)
+        CLEAN_ROOM_SESSION_STARTED,
+        CLEAN_ROOM_SESSION_TERMINATED,
+        OUTPUT_RESTRICTION_VIOLATION,
+        EXPORT_BLOCKED,
+        COPY_BLOCKED,
+        SCREENSHOT_BLOCKED,
+        // Secure Deletion events (Requirement 222)
+        SECURE_DELETION_INITIATED,
+        KEY_DESTROYED,
+        STORAGE_DELETED,
+        STORAGE_OVERWRITTEN,
+        SECURE_DELETION_COMPLETED,
+        SECURE_DELETION_VERIFIED,
+        SECURE_DELETION_FAILED,
+        DECRYPTION_BLOCKED_KEY_DESTROYED
     }
 
     public enum ActorType {

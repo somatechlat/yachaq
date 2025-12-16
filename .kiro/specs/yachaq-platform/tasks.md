@@ -240,102 +240,102 @@
 - [x] 20. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 21. Device Attestation Service
-  - [ ] 21.1 Implement device attestation collection
+- [x] 21. Device Attestation Service
+  - [x] 21.1 Implement device attestation collection
     - Integrate SafetyNet (Android) and DeviceCheck (iOS) APIs
     - Store attestation proofs with trust levels
     - _Requirements: 217.1, 217.2, 217.3_
-  - [ ] 21.2 Implement attestation verification flow
+  - [x] 21.2 Implement attestation verification flow
     - Verify attestation proofs on device responses
     - Flag devices with failed attestation for enhanced verification
     - _Requirements: 217.4, 217.5_
-  - [ ] 21.3 Write property test for device attestation collection
+  - [x] 21.3 Write property test for device attestation collection
     - **Property 22: Device Attestation Collection**
     - **Validates: Requirements 217.1**
 
-- [ ] 22. Query Plan Security
-  - [ ] 22.1 Implement query plan signing
+- [x] 22. Query Plan Security
+  - [x] 22.1 Implement query plan signing
     - Sign query plans with platform key
     - Include scope, transforms, compensation, and TTL in signed payload
     - _Requirements: 216.1, 216.3, 216.4, 216.5_
-  - [ ] 22.2 Implement query plan verification on devices
+  - [x] 22.2 Implement query plan verification on devices
     - Verify signature before query execution
     - Reject tampered or expired plans
     - _Requirements: 216.2, 216.6, 216.8_
-  - [ ] 22.3 Write property test for query plan signature verification
+  - [x] 22.3 Write property test for query plan signature verification
     - **Property 15: Query Plan Signature Verification**
     - **Validates: Requirements 216.1, 216.2**
 
-- [ ] 23. Replay Protection Service
-  - [ ] 23.1 Implement nonce registry
+- [x] 23. Replay Protection Service
+  - [x] 23.1 Implement nonce registry
     - Generate unique nonces for capsules
     - Store nonces with TTL matching capsule TTL
     - _Requirements: 218.1, 218.4_
-  - [ ] 23.2 Implement replay detection
+  - [x] 23.2 Implement replay detection
     - Validate nonce on capsule access
     - Reject and log replay attempts
     - _Requirements: 218.2, 218.3_
-  - [ ] 23.3 Write property test for capsule replay protection
+  - [x] 23.3 Write property test for capsule replay protection
     - **Property 16: Capsule Replay Protection**
     - **Validates: Requirements 218.1, 218.2**
 
-- [ ] 24. Checkpoint - Ensure all tests pass
+- [x] 24. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 25. Field-Level Access Controls
-  - [ ] 25.1 Implement field specification in consent contracts
+- [x] 25. Field-Level Access Controls
+  - [x] 25.1 Implement field specification in consent contracts
     - Store exact permitted fields in consent contract
     - Support per-field consent decisions for sensitive fields
     - _Requirements: 219.1, 219.3_
-  - [ ] 25.2 Implement field-level query enforcement
+  - [x] 25.2 Implement field-level query enforcement
     - Extract only permitted fields during query execution
     - Log field access with hash in receipt
     - _Requirements: 219.2, 219.5_
-  - [ ] 25.3 Write property test for field-level access enforcement
+  - [x] 25.3 Write property test for field-level access enforcement
     - **Property 17: Field-Level Access Enforcement**
     - **Validates: Requirements 219.1, 219.2**
 
-- [ ] 26. Transform Restrictions
-  - [ ] 26.1 Implement transform specification in consent
+- [x] 26. Transform Restrictions
+  - [x] 26.1 Implement transform specification in consent
     - Store allowed transforms in consent contract
     - Support transform chaining validation
     - _Requirements: 220.1, 220.3_
-  - [ ] 26.2 Implement transform enforcement
+  - [x] 26.2 Implement transform enforcement
     - Verify each transform against allowed list
     - Reject unauthorized transforms with logging
     - _Requirements: 220.2, 220.6_
-  - [ ] 26.3 Write property test for transform restriction enforcement
+  - [x] 26.3 Write property test for transform restriction enforcement
     - **Property 18: Transform Restriction Enforcement**
     - **Validates: Requirements 220.1, 220.2**
 
-- [ ] 27. Output Restriction Enforcement
-  - [ ] 27.1 Implement output restriction types
+- [x] 27. Output Restriction Enforcement
+  - [x] 27.1 Implement output restriction types
     - Support view-only, aggregate-only, no-export restrictions
     - Enforce restrictions based on consent specification
     - _Requirements: 221.1, 221.2_
-  - [ ] 27.2 Implement clean room delivery controls
+  - [x] 27.2 Implement clean room delivery controls
     - Disable download, copy, screenshot in view-only mode
     - Return only aggregated results in aggregate-only mode
     - _Requirements: 221.3, 221.4_
 
-- [ ] 28. Checkpoint - Ensure all tests pass
+- [x] 28. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 29. Secure Deletion Service
-  - [ ] 29.1 Implement crypto-shred deletion
+- [x] 29. Secure Deletion Service
+  - [x] 29.1 Implement crypto-shred deletion
     - Destroy encryption keys on deletion request
     - Overwrite storage with random data
     - _Requirements: 222.2, 222.3_
-  - [ ] 29.2 Implement deletion verification
+  - [x] 29.2 Implement deletion verification
     - Generate deletion certificates with timestamp and scope
     - Coordinate deletion across all storage locations
     - _Requirements: 222.1, 222.4, 222.9_
-  - [ ] 29.3 Write property test for secure deletion verification
+  - [x] 29.3 Write property test for secure deletion verification
     - **Property 19: Secure Deletion Verification**
     - **Validates: Requirements 222.1, 222.2**
 
-- [ ] 30. Consent Obligations
-  - [ ] 30.1 Implement obligation specification
+- [-] 30. Consent Obligations
+  - [-] 30.1 Implement obligation specification
     - Include data handling obligations in consent contracts
     - Specify retention limits, usage restrictions, deletion requirements
     - _Requirements: 223.1, 223.2_

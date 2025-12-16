@@ -40,6 +40,7 @@ class AuditServicePropertyTest {
         registry.add("spring.datasource.password", () -> "yachaq");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("yachaq.jwt.secret", () -> "test-secret-key-minimum-32-characters-long-for-testing");
+        registry.add("yachaq.security.platform-key-id", () -> "test-platform-key-v1");
     }
 
     @Autowired
