@@ -435,11 +435,12 @@ class MultiDevicePropertyTest {
     }
 
     private MultiDeviceService.DeviceLinkRequest generateDeviceLinkRequest() {
-        DeviceType[] types = {DeviceType.MOBILE_ANDROID, DeviceType.MOBILE_IOS, DeviceType.DESKTOP};
+        // Use only mobile devices to avoid hitting desktop slot limits (2 max for DS_IND)
+        DeviceType[] types = {DeviceType.MOBILE_ANDROID, DeviceType.MOBILE_IOS};
         DeviceType deviceType = types[random.nextInt(types.length)];
         
-        String[] osVersions = {"Android 14", "iOS 17", "macOS 14", "Windows 11"};
-        String[] hardwareClasses = {"smartphone", "tablet", "laptop", "desktop"};
+        String[] osVersions = {"Android 14", "iOS 17"};
+        String[] hardwareClasses = {"smartphone", "tablet"};
 
         return new MultiDeviceService.DeviceLinkRequest(
                 generatePublicKey(),

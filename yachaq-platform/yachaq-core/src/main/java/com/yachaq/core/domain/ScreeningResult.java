@@ -36,7 +36,7 @@ public class ScreeningResult {
     private ScreeningDecision decision;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "reason_codes", columnDefinition = "text")
+    @Column(name = "reason_codes", columnDefinition = "clob")
     private List<String> reasonCodes = new ArrayList<>();
 
     @NotNull
