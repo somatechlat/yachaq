@@ -39,7 +39,7 @@ public class LocalVault {
      * Creates a new LocalVault with a generated master key.
      */
     public LocalVault() {
-        this(generateMasterKey(), Set.of("feature_extractor", "plan_vm", "normalizer"));
+        this(generateMasterKey(), Set.of("feature_extractor", "plan_vm", "normalizer", "credential_wallet"));
     }
 
     /**

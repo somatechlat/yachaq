@@ -947,29 +947,29 @@
     - Test partial release, refund workflows
     - _Requirements: 325.5_
 
-- [ ] 75. Checkpoint - Ensure all tests pass
+- [x] 75. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 76. DID/VC Wallet
-  - [ ] 76.1 Implement anonymous mode default
+- [x] 76. DID/VC Wallet
+  - [x] 76.1 Implement anonymous mode default
     - Support anonymous mode by default
     - _Requirements: 326.1_
-  - [ ] 76.2 Implement credential presentation
+  - [x] 76.2 Implement credential presentation
     - Present verifiable credentials to requester when required
     - _Requirements: 326.2_
-  - [ ] 76.3 Implement credential storage
+  - [x] 76.3 Implement credential storage
     - Store validation state locally with issued_at, expires_at, status checks
     - _Requirements: 326.3_
-  - [ ] 76.4 Implement P2P credential transmission
+  - [x] 76.4 Implement P2P credential transmission
     - Send credentials P2P to requester, never via YACHAQ servers
     - _Requirements: 326.4_
-  - [ ] 76.5 Implement W3C VC and DID standards
+  - [x] 76.5 Implement W3C VC and DID standards
     - Support W3C Verifiable Credentials and DID standards
     - _Requirements: 326.5_
-  - [ ] 76.6 Implement OpenID4VP/OpenID4VCI protocols
+  - [x] 76.6 Implement OpenID4VP/OpenID4VCI protocols
     - Support credential exchange protocols
     - _Requirements: 326.6_
-  - [ ]* 76.7 Write unit tests for DID/VC wallet
+  - [x]* 76.7 Write unit tests for DID/VC wallet
     - Test credential presentation, P2P transmission
     - _Requirements: 326.2, 326.4_
 

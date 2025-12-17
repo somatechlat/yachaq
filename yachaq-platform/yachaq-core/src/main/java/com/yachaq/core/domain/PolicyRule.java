@@ -59,6 +59,26 @@ public class PolicyRule {
 
     protected PolicyRule() {}
 
+    public static PolicyRule create(
+            String ruleCode,
+            String ruleName,
+            String ruleDescription,
+            RuleType ruleType,
+            String ruleCategory,
+            Integer severity) {
+        PolicyRule rule = new PolicyRule();
+        rule.ruleCode = ruleCode;
+        rule.ruleName = ruleName;
+        rule.ruleDescription = ruleDescription;
+        rule.ruleType = ruleType;
+        rule.ruleCategory = ruleCategory;
+        rule.severity = severity;
+        rule.isActive = true;
+        rule.createdAt = Instant.now();
+        rule.updatedAt = Instant.now();
+        return rule;
+    }
+
     public String getRuleCode() { return ruleCode; }
     public RuleType getRuleType() { return ruleType; }
     public Integer getSeverity() { return severity; }
