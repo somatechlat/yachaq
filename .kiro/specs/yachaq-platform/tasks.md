@@ -498,7 +498,7 @@
   - Fixed: ScreeningResult entity using PostgreSQL-specific text[] array type (changed to JSON)
   - Fixed: application-test.yml H2 configuration (ddl-auto: create-drop, sql.init.mode: never)
 
-- [ ] 43. Node Runtime Kernel
+- [x] 43. Node Runtime Kernel
   - [x] 43.1 Implement Node Kernel boot sequence
     - Create Kernel class with start() method
     - Implement boot sequence: key init → vault mount → ODX load → connectors init → scheduler
@@ -515,7 +515,7 @@
     - Test boot idempotency, job scheduling under constraints, module isolation
     - _Requirements: 302.1, 302.2_
 
-- [ ] 44. Key Management Service
+- [x] 44. Key Management Service
   - [x] 44.1 Implement root keypair generation
     - Generate long-term root keypair with hardware-backed storage when available
     - Store in secure enclave/keystore
@@ -528,10 +528,10 @@
     - Rotate network identifiers daily/weekly
     - Rotate pairwise identifiers per relationship or contract
     - _Requirements: 303.4, 303.5_
-  - [ ] 44.4 Implement session key derivation
+  - [x] 44.4 Implement session key derivation
     - Derive unique session keys for P2P transfers
     - _Requirements: 303.3_
-  - [ ]* 44.5 Write property test for pairwise DID anti-correlation
+  - [x]* 44.5 Write property test for pairwise DID anti-correlation
     - **Property 59: Pairwise DID Anti-Correlation**
     - **Validates: Requirements 303.2**
   - [x]* 44.6 Write unit tests for key management
@@ -541,7 +541,7 @@
 - [x] 45. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 46. Permissions & Consent Firewall
+- [x] 46. Permissions & Consent Firewall
   - [x] 46.1 Implement OS permission checking
     - Create checkOS(permission) method
     - Request permissions just-in-time with explanations
@@ -554,13 +554,13 @@
     - Create promptContractPreview(contractDraft) method
     - Create signContract(contractDraft) method with replay-safe nonce and expiry
     - _Requirements: 304.3, 304.4_
-  - [ ] 46.4 Implement permission presets
+  - [x] 46.4 Implement permission presets
     - Create Minimal, Standard, Full presets with visible toggles
     - _Requirements: 304.6_
-  - [ ]* 46.5 Write property test for consent replay safety
+  - [x]* 46.5 Write property test for consent replay safety
     - **Property 60: Consent Replay Safety**
     - **Validates: Requirements 304.4**
-  - [ ]* 46.6 Write unit tests for permission matrix
+  - [x]* 46.6 Write unit tests for permission matrix
     - Test each feature fails closed when permissions missing
     - _Requirements: 304.5_
 
@@ -607,35 +607,35 @@
 - [x] 49. Checkpoint - Ensure all tests pass
   - All 107 tests pass in yachaq-node module
 
-- [ ] 50. Local Vault (Encrypted Storage)
-  - [ ] 50.1 Implement vault storage with envelope encryption
+- [x] 50. Local Vault (Encrypted Storage)
+  - [x] 50.1 Implement vault storage with envelope encryption
     - Create put(bytes, metadata) method returning raw_ref
     - Implement per-object keys wrapped by vault master key
     - _Requirements: 307.1, 307.2_
-  - [ ] 50.2 Implement vault retrieval and deletion
+  - [x] 50.2 Implement vault retrieval and deletion
     - Create get(raw_ref) and delete(raw_ref) methods
     - _Requirements: 307.2, 307.3_
-  - [ ] 50.3 Implement crypto-shred for TTL objects
+  - [x] 50.3 Implement crypto-shred for TTL objects
     - Create cryptoShred(keyId) method
     - _Requirements: 307.3_
-  - [ ] 50.4 Implement vault access control
+  - [x] 50.4 Implement vault access control
     - Restrict access to allowed modules only (feature extractor, plan VM)
     - _Requirements: 307.5_
-  - [ ]* 50.5 Write unit tests for vault operations
+  - [x]* 50.5 Write unit tests for vault operations
     - Test key rotation, corruption recovery, secure delete semantics
     - _Requirements: 307.3, 307.6_
 
-- [ ] 51. Data Normalizer
-  - [ ] 51.1 Implement canonical event model
+- [x] 51. Data Normalizer
+  - [x] 51.1 Implement canonical event model
     - Create CanonicalEvent class with all required fields
     - _Requirements: 308.1_
-  - [ ] 51.2 Implement source-specific normalizers
+  - [x] 51.2 Implement source-specific normalizers
     - Create deterministic mapping per source type
     - _Requirements: 308.2_
-  - [ ] 51.3 Implement schema versioning and migration
+  - [x] 51.3 Implement schema versioning and migration
     - Support versioned schema evolution
     - _Requirements: 308.3_
-  - [ ]* 51.4 Write golden-file tests for normalization
+  - [x]* 51.4 Write golden-file tests for normalization
     - Verify same input produces same canonical output
     - _Requirements: 308.4, 308.5_
 
@@ -656,7 +656,7 @@
     - Ensure no raw content appears in ODX
     - _Requirements: 309.2, 309.3, 309.6_
 
-- [ ] 53. Checkpoint - Ensure all tests pass
+- [x] 53. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 54. Label Engine
