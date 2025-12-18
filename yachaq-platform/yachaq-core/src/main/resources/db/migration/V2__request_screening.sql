@@ -30,7 +30,7 @@ CREATE TABLE screening_results (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     request_id UUID NOT NULL UNIQUE REFERENCES requests(id),
     decision VARCHAR(20) NOT NULL CHECK (decision IN ('APPROVED', 'REJECTED', 'MANUAL_REVIEW')),
-    reason_codes TEXT[] NOT NULL DEFAULT '{}',
+    reason_codes JSONB NOT NULL DEFAULT '[]',
     risk_score DECIMAL(5,4) NOT NULL CHECK (risk_score >= 0 AND risk_score <= 1),
     cohort_size_estimate INTEGER NOT NULL CHECK (cohort_size_estimate >= 0),
     policy_version VARCHAR(50) NOT NULL,

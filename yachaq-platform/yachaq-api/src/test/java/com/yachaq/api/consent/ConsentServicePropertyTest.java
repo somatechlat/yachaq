@@ -1,8 +1,11 @@
 package com.yachaq.api.consent;
 
 import com.yachaq.core.domain.ConsentContract;
+import com.yachaq.core.domain.DSProfile;
+import com.yachaq.core.domain.DSProfile.DSAccountType;
 import com.yachaq.core.repository.AuditReceiptRepository;
 import com.yachaq.core.repository.ConsentContractRepository;
+import com.yachaq.core.repository.DSProfileRepository;
 import net.jqwik.api.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +42,14 @@ class ConsentServicePropertyTest {
     @Autowired
     private AuditReceiptRepository auditRepository;
 
+    @Autowired
+    private DSProfileRepository dsProfileRepository;
+
     @BeforeEach
     void setUp() {
         auditRepository.deleteAll();
         consentRepository.deleteAll();
+        // Note: DS profiles are cleaned up per iteration to avoid FK constraint issues
     }
 
 
@@ -88,7 +95,7 @@ class ConsentServicePropertyTest {
             assertTrue(auditRepository.findById(result.auditReceiptId()).isPresent(), 
                     "Audit receipt must exist");
             
-            // Clean up for next iteration
+            // Clean up for next iteration (only consent-related data, not DS profiles)
             auditRepository.deleteAll();
             consentRepository.deleteAll();
         }
@@ -139,7 +146,7 @@ class ConsentServicePropertyTest {
             assertTrue(auditRepository.findById(revokeResult.auditReceiptId()).isPresent(),
                     "Revocation audit receipt must exist");
             
-            // Clean up for next iteration
+            // Clean up for next iteration (only consent-related data, not DS profiles)
             auditRepository.deleteAll();
             consentRepository.deleteAll();
         }
@@ -147,9 +154,14 @@ class ConsentServicePropertyTest {
 
     /**
      * Generates a valid consent request with random data.
+     * Creates a DS profile in the database to satisfy foreign key constraints.
      */
     private ConsentService.ConsentRequest generateValidConsentRequest() {
-        UUID dsId = UUID.randomUUID();
+        // Create DS profile first to satisfy foreign key constraint
+        DSProfile profile = new DSProfile("test-ds-" + UUID.randomUUID(), DSAccountType.DS_IND);
+        profile = dsProfileRepository.save(profile);
+        UUID dsId = profile.getId();
+        
         UUID requesterId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
         String scopeHash = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");

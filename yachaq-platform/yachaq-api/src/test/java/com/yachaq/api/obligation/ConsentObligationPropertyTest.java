@@ -5,10 +5,13 @@ import com.yachaq.core.domain.ConsentObligation;
 import com.yachaq.core.domain.ConsentObligation.EnforcementLevel;
 import com.yachaq.core.domain.ConsentObligation.ObligationStatus;
 import com.yachaq.core.domain.ConsentObligation.ObligationType;
+import com.yachaq.core.domain.DSProfile;
+import com.yachaq.core.domain.DSProfile.DSAccountType;
 import com.yachaq.core.domain.ObligationViolation;
 import com.yachaq.core.repository.AuditReceiptRepository;
 import com.yachaq.core.repository.ConsentContractRepository;
 import com.yachaq.core.repository.ConsentObligationRepository;
+import com.yachaq.core.repository.DSProfileRepository;
 import com.yachaq.core.repository.ObligationViolationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,14 +55,19 @@ class ConsentObligationPropertyTest {
     @Autowired
     private AuditReceiptRepository auditRepository;
 
+    @Autowired
+    private DSProfileRepository dsProfileRepository;
+
     private final Random random = new Random();
 
     @BeforeEach
     void setUp() {
+        // Delete in correct order to respect foreign key constraints
         violationRepository.deleteAll();
         obligationRepository.deleteAll();
         auditRepository.deleteAll();
         consentRepository.deleteAll();
+        dsProfileRepository.deleteAll();
     }
 
     /**
@@ -353,7 +361,11 @@ class ConsentObligationPropertyTest {
     }
 
     private ConsentContract createTestContract() {
-        UUID dsId = UUID.randomUUID();
+        // Create DS profile first to satisfy foreign key constraint
+        DSProfile profile = new DSProfile("test-ds-" + UUID.randomUUID(), DSAccountType.DS_IND);
+        profile = dsProfileRepository.save(profile);
+        UUID dsId = profile.getId();
+        
         UUID requesterId = UUID.randomUUID();
         UUID requestId = UUID.randomUUID();
         String scopeHash = generateRandomHash();

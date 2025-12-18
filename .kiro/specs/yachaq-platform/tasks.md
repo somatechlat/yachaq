@@ -973,46 +973,46 @@
     - Test credential presentation, P2P transmission
     - _Requirements: 326.2, 326.4_
 
-- [ ] 77. Security Test Suite
-  - [ ] 77.1 Implement ODX Safety Scanner
+- [x] 77. Security Test Suite
+  - [x] 77.1 Implement ODX Safety Scanner
     - Ensure forbidden fields never appear in ODX or coordinator payloads
     - _Requirements: 337.1_
-  - [ ] 77.2 Implement PlanVM fuzzing suite
+  - [x] 77.2 Implement PlanVM fuzzing suite
     - Test disallowed operators, oversized outputs, sandbox escapes
     - _Requirements: 337.2_
-  - [ ] 77.3 Implement parser fuzzing suite
+  - [x] 77.3 Implement parser fuzzing suite
     - Test ZIP bombs, JSON bombs, malformed encodings
     - _Requirements: 337.3_
-  - [ ] 77.4 Implement network egress guard tests
+  - [x] 77.4 Implement network egress guard tests
     - Attempt to send raw payload bytes to any route
     - _Requirements: 337.4_
-  - [ ] 77.5 Implement replay and MITM tests
+  - [x] 77.5 Implement replay and MITM tests
     - Attempt reuse of old requests/contracts/capsules
     - _Requirements: 337.5_
-  - [ ] 77.6 Implement correlation tests
+  - [x] 77.6 Implement correlation tests
     - Verify pairwise identities differ per requester and rotate
     - _Requirements: 337.6_
-  - [ ] 77.7 Implement high-risk gating tests
+  - [x] 77.7 Implement high-risk gating tests
     - Verify health + minors + neighborhood defaults to clean-room
     - _Requirements: 337.7_
 
-- [ ] 78. Final Checkpoint - Phone-as-Node P2P Architecture
+- [x] 78. Final Checkpoint - Phone-as-Node P2P Architecture
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 79. Acceptance Security Gates Verification
-  - [ ] 79.1 Verify no raw ingestion endpoints
+- [x] 79. Acceptance Security Gates Verification
+  - [x] 79.1 Verify no raw ingestion endpoints
     - Confirm coordinator has no raw ingestion endpoints
     - _Requirements: 338.1_
-  - [ ] 79.2 Verify end-to-end signature validation
+  - [x] 79.2 Verify end-to-end signature validation
     - Confirm all request/contract/plan/capsule signatures validate
     - _Requirements: 338.2_
-  - [ ] 79.3 Verify PlanVM security
+  - [x] 79.3 Verify PlanVM security
     - Confirm PlanVM passes fuzzing and cannot make network calls
     - _Requirements: 338.3_
-  - [ ] 79.4 Verify ODX safety
+  - [x] 79.4 Verify ODX safety
     - Confirm ODX safety scanner shows zero forbidden leaks
     - _Requirements: 338.4_
-  - [ ] 79.5 Verify reproducible builds
+  - [x] 79.5 Verify reproducible builds
     - Confirm reproducible build verification is documented and repeatable
     - _Requirements: 338.5_
 

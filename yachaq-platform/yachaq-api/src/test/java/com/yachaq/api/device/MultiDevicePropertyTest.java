@@ -11,6 +11,7 @@ import com.yachaq.core.repository.DeviceDataLocationRepository;
 import com.yachaq.core.repository.DeviceHealthEventRepository;
 import com.yachaq.core.repository.DeviceRepository;
 import com.yachaq.core.repository.DSProfileRepository;
+import com.yachaq.core.repository.RefreshTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class MultiDevicePropertyTest {
 
     @Autowired
@@ -57,15 +59,27 @@ class MultiDevicePropertyTest {
     @Autowired
     private AuditReceiptRepository auditRepository;
 
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     private final Random random = new Random();
 
     @BeforeEach
     void setUp() {
+        // Clear replaced_by references first to avoid self-referential FK issues
+        entityManager.createNativeQuery("UPDATE refresh_tokens SET replaced_by = NULL").executeUpdate();
+        refreshTokenRepository.deleteAll();
         dataLocationRepository.deleteAll();
         healthEventRepository.deleteAll();
+        // Clear device replacement FK references before deleting devices
+        entityManager.createNativeQuery("UPDATE devices SET replacement_device_id = NULL").executeUpdate();
         deviceRepository.deleteAll();
         auditRepository.deleteAll();
         dsProfileRepository.deleteAll();
+        entityManager.flush();
     }
 
     /**
@@ -108,12 +122,7 @@ class MultiDevicePropertyTest {
             assertTrue(multiDeviceService.validateDeviceIdentityLinking(dsId),
                     "Device identity linking validation must pass");
 
-            // Clean up for next iteration
-            dataLocationRepository.deleteAll();
-            healthEventRepository.deleteAll();
-            deviceRepository.deleteAll();
-            auditRepository.deleteAll();
-            dsProfileRepository.deleteAll();
+            // No cleanup needed - @Transactional rolls back after test
         }
     }
 
@@ -190,12 +199,7 @@ class MultiDevicePropertyTest {
                 multiDeviceService.linkDevice(dsId, extraDevice);
             }, "Must reject device when total limit exceeded");
 
-            // Clean up
-            dataLocationRepository.deleteAll();
-            healthEventRepository.deleteAll();
-            deviceRepository.deleteAll();
-            auditRepository.deleteAll();
-            dsProfileRepository.deleteAll();
+            // No cleanup needed - @Transactional rolls back after test
         }
     }
 
@@ -273,12 +277,7 @@ class MultiDevicePropertyTest {
             assertTrue(primaryResult.success(), "Primary query routing must succeed");
             assertEquals(1, primaryResult.targetDeviceIds().size(), "Primary routing must return exactly 1 device");
 
-            // Clean up
-            dataLocationRepository.deleteAll();
-            healthEventRepository.deleteAll();
-            deviceRepository.deleteAll();
-            auditRepository.deleteAll();
-            dsProfileRepository.deleteAll();
+            // No cleanup needed - @Transactional rolls back after test
         }
     }
 
@@ -324,12 +323,7 @@ class MultiDevicePropertyTest {
             primaryCount = devices.stream().filter(Device::isPrimary).count();
             assertEquals(1, primaryCount, "Must still have exactly one primary device");
 
-            // Clean up
-            dataLocationRepository.deleteAll();
-            healthEventRepository.deleteAll();
-            deviceRepository.deleteAll();
-            auditRepository.deleteAll();
-            dsProfileRepository.deleteAll();
+            // No cleanup needed - @Transactional rolls back after test
         }
     }
 
@@ -377,12 +371,7 @@ class MultiDevicePropertyTest {
                     .anyMatch(e -> e.getEventType() == DeviceHealthEvent.EventType.DEVICE_REPLACED);
             assertTrue(hasReplacementEvent, "Replacement health event must be recorded");
 
-            // Clean up
-            dataLocationRepository.deleteAll();
-            healthEventRepository.deleteAll();
-            deviceRepository.deleteAll();
-            auditRepository.deleteAll();
-            dsProfileRepository.deleteAll();
+            // No cleanup needed - @Transactional rolls back after test
         }
     }
 

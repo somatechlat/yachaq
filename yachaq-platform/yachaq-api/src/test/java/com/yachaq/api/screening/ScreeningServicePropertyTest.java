@@ -49,27 +49,30 @@ class ScreeningServicePropertyTest {
     }
 
     private void seedPolicyRules() {
-        // COHORT_MIN_SIZE - blocking rule
-        PolicyRule cohortRule = PolicyRule.create(
-                "COHORT_MIN_SIZE",
-                "Minimum Cohort Size",
-                "Cohort must be at least k=50",
-                PolicyRule.RuleType.BLOCKING,
-                "PRIVACY",
-                10
-        );
-        policyRuleRepository.save(cohortRule);
+        // Only create if not exists to avoid duplicate key violations
+        if (policyRuleRepository.findByRuleCode("COHORT_MIN_SIZE").isEmpty()) {
+            PolicyRule cohortRule = PolicyRule.create(
+                    "COHORT_MIN_SIZE",
+                    "Minimum Cohort Size",
+                    "Cohort must be at least k=50",
+                    PolicyRule.RuleType.BLOCKING,
+                    "PRIVACY",
+                    10
+            );
+            policyRuleRepository.save(cohortRule);
+        }
 
-        // DURATION_REASONABLE - warning rule
-        PolicyRule durationRule = PolicyRule.create(
-                "DURATION_REASONABLE",
-                "Reasonable Duration",
-                "Duration should not exceed 365 days",
-                PolicyRule.RuleType.WARNING,
-                "COMPLIANCE",
-                5
-        );
-        policyRuleRepository.save(durationRule);
+        if (policyRuleRepository.findByRuleCode("DURATION_REASONABLE").isEmpty()) {
+            PolicyRule durationRule = PolicyRule.create(
+                    "DURATION_REASONABLE",
+                    "Reasonable Duration",
+                    "Duration should not exceed 365 days",
+                    PolicyRule.RuleType.WARNING,
+                    "COMPLIANCE",
+                    5
+            );
+            policyRuleRepository.save(durationRule);
+        }
     }
 
     /**

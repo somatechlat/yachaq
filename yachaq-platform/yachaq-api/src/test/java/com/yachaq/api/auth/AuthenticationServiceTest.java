@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class AuthenticationServiceTest {
 
     @Autowired
@@ -39,11 +40,17 @@ class AuthenticationServiceTest {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     @BeforeEach
     void setUp() {
+        // Clear replaced_by references first to avoid self-referential FK issues
+        entityManager.createNativeQuery("UPDATE refresh_tokens SET replaced_by = NULL").executeUpdate();
         refreshTokenRepository.deleteAll();
         deviceRepository.deleteAll();
         dsProfileRepository.deleteAll();
+        entityManager.flush();
     }
 
     @Test
@@ -164,6 +171,8 @@ class AuthenticationServiceTest {
                 "google", "revoke-all", "test@example.com", "key2", Device.DeviceType.MOBILE_IOS);
 
         int revoked = authService.revokeAllTokens(result1.dsId());
+        entityManager.flush();
+        entityManager.clear(); // Clear persistence context to force re-read from DB
 
         assertTrue(revoked >= 2);
         // After revokeAll, trying to use revoked tokens should fail

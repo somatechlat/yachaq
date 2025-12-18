@@ -2,6 +2,8 @@ package com.yachaq.api.integration;
 
 import com.yachaq.api.YachaqApiApplication;
 import com.yachaq.api.config.RateLimitConfig;
+import com.yachaq.core.domain.DSProfile;
+import com.yachaq.core.repository.DSProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,20 +40,32 @@ class RateLimitIntegrationTest {
     @Autowired
     private RateLimitConfig rateLimitConfig;
 
+    @Autowired
+    private DSProfileRepository dsProfileRepository;
+
     private String baseUrl;
     private HttpHeaders headers;
+    private UUID testDsId;
 
     @BeforeEach
     void setUp() {
         baseUrl = "http://localhost:" + port + "/api/v1";
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        // Create a test DS profile for tests that require it
+        DSProfile testProfile = new DSProfile(
+            "rate-limit-test-" + UUID.randomUUID(),
+            DSProfile.DSAccountType.DS_IND
+        );
+        testProfile = dsProfileRepository.save(testProfile);
+        testDsId = testProfile.getId();
     }
 
     @Test
     void rateLimitHeader_shouldBePresentOnRateLimitedEndpoints() {
-        UUID dsId = UUID.randomUUID();
-        headers.set("X-DS-ID", dsId.toString());
+        // Use testDsId which has a valid DSProfile in the database
+        headers.set("X-DS-ID", testDsId.toString());
         
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<String> response = restTemplate.exchange(

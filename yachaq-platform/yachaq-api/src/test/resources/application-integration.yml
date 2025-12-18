@@ -1,8 +1,5 @@
-# Test Configuration - Uses REAL Infrastructure
-# VIBE CODING RULES: Rule #7 - REAL DATA & SERVERS ONLY
-# NO H2, NO mocks, NO fake databases
-# Real PostgreSQL: localhost:55432
-# Real Redis: localhost:55379
+# Integration Test Configuration - Uses REAL Infrastructure
+# Run with: mvn test -Dspring.profiles.active=integration
 
 spring:
   datasource:
@@ -13,12 +10,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    clean-disabled: false
-    baseline-on-migrate: true
-    validate-on-migrate: false
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -40,7 +34,7 @@ spring:
 
 yachaq:
   jwt:
-    secret: test-secret-key-minimum-32-characters-long-for-testing-purposes
+    secret: integration-test-secret-key-minimum-32-characters-long
     access-token-validity: 900
     refresh-token-validity: 604800
   screening:
@@ -48,7 +42,7 @@ yachaq:
     min-cohort-size: 50
     manual-review-threshold: 0.5
   security:
-    platform-key-id: test-platform-key-v1
+    platform-key-id: integration-platform-key-v1
   privacy:
     k-min: 50
     linkage-window-hours: 24

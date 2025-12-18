@@ -1,6 +1,8 @@
 package com.yachaq.api.integration;
 
 import com.yachaq.api.YachaqApiApplication;
+import com.yachaq.core.domain.DSProfile;
+import com.yachaq.core.repository.DSProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 
  * Requirements: 27.4, 29.1
  * - Test authentication, authorization, rate limiting
- * - Test against real infrastructure (PostgreSQL via Testcontainers)
+ * - Test against real infrastructure (PostgreSQL)
  */
 @SpringBootTest(
     classes = YachaqApiApplication.class,
@@ -35,14 +37,26 @@ class ApiIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private DSProfileRepository dsProfileRepository;
+
     private String baseUrl;
     private HttpHeaders headers;
+    private UUID testDsId;
 
     @BeforeEach
     void setUp() {
         baseUrl = "http://localhost:" + port + "/api/v1";
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        // Create a test DS profile for tests that require it
+        DSProfile testProfile = new DSProfile(
+            "test-pseudonym-" + UUID.randomUUID(),
+            DSProfile.DSAccountType.DS_IND
+        );
+        testProfile = dsProfileRepository.save(testProfile);
+        testDsId = testProfile.getId();
     }
 
     // Health check tests
@@ -129,8 +143,8 @@ class ApiIntegrationTest {
 
     @Test
     void getBalance_withValidDsId_shouldReturnBalance() {
-        UUID dsId = UUID.randomUUID();
-        headers.set("X-DS-ID", dsId.toString());
+        // Use testDsId which has a valid DSProfile in the database
+        headers.set("X-DS-ID", testDsId.toString());
         
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -147,8 +161,8 @@ class ApiIntegrationTest {
 
     @Test
     void getPayoutHistory_withValidDsId_shouldReturnList() {
-        UUID dsId = UUID.randomUUID();
-        headers.set("X-DS-ID", dsId.toString());
+        // Use testDsId which has a valid DSProfile in the database
+        headers.set("X-DS-ID", testDsId.toString());
         
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<Object[]> response = restTemplate.exchange(
@@ -166,8 +180,8 @@ class ApiIntegrationTest {
 
     @Test
     void getSettlementBalance_withValidDsId_shouldReturnBalance() {
-        UUID dsId = UUID.randomUUID();
-        headers.set("X-DS-ID", dsId.toString());
+        // Use testDsId which has a valid DSProfile in the database
+        headers.set("X-DS-ID", testDsId.toString());
         
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<Map> response = restTemplate.exchange(

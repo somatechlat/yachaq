@@ -89,5 +89,11 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- YACHAQ Node for ODX classes in tests -->
+        <dependency>
+            <groupId>com.yachaq</groupId>
+            <artifactId>yachaq-node</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

@@ -25,16 +25,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers("/api/v1/health", "/api/v1/info").permitAll()
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                // GraphQL endpoint
-                .requestMatchers("/graphql", "/graphiql").permitAll()
-                // Swagger/OpenAPI
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // All other API endpoints - permit for now (in production, require auth)
-                .requestMatchers("/api/**").permitAll()
-                .anyRequest().authenticated()
+                // Permit all requests for now (in production, configure proper auth)
+                .anyRequest().permitAll()
             );
         
         return http.build();

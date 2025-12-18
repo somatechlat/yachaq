@@ -75,6 +75,11 @@
                 <artifactId>yachaq-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.yachaq</groupId>
+                <artifactId>yachaq-node</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
