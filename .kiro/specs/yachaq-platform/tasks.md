@@ -1290,17 +1290,17 @@
     - Test requirements, forfeiture, return
     - _Requirements: 355.3, 355.5_
 
-- [-] 103. PlanVM Safety Proofs
-  - [ ] 103.1 Document operator semantics
+- [x] 103. PlanVM Safety Proofs
+  - [x] 103.1 Document operator semantics
     - Provide complete operator documentation
     - _Requirements: 356.1_
-  - [ ] 103.2 Implement static validator tests
+  - [x] 103.2 Implement static validator tests
     - Pass completeness tests
     - _Requirements: 356.2_
-  - [ ] 103.3 Implement differential tests
+  - [x] 103.3 Implement differential tests
     - Verify two implementations yield same output
     - _Requirements: 356.3_
-  - [ ]* 103.4 Write coverage reports
+  - [x]* 103.4 Write coverage reports
     - Provide complete test coverage
     - _Requirements: 356.5_
 
