@@ -51,7 +51,18 @@ import java.util.List;
  */
 public class EscrowContract extends Contract {
 
-    public static final String BINARY = ""; // Compiled bytecode would go here
+    /**
+     * Compiled Solidity bytecode.
+     * 
+     * To generate: 
+     * 1. Write Solidity contract in contracts/Escrow.sol
+     * 2. Compile with: solc --bin --abi contracts/Escrow.sol
+     * 3. Paste the bytecode here
+     * 
+     * The contract must be deployed to the blockchain before this wrapper can be used.
+     * Use EscrowContract.load() with the deployed contract address.
+     */
+    public static final String BINARY = "";
     
     public static final String FUNC_CREATEESCROW = "createEscrow";
     public static final String FUNC_DEPOSIT = "deposit";

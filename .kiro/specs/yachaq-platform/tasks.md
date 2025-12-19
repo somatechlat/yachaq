@@ -1016,7 +1016,7 @@
     - Confirm reproducible build verification is documented and repeatable
     - _Requirements: 338.5_
 
-- [ ] 80. Final Checkpoint - Complete System
+- [x] 80. Final Checkpoint - Complete System
   - Ensure all tests pass, ask the user if questions arise.
 
 
@@ -1024,216 +1024,216 @@
 
 ## Provider App UI/UX Implementation
 
-- [ ] 81. Onboarding & Trust Center
-  - [ ] 81.1 Implement Trust Center screen
+- [x] 81. Onboarding & Trust Center
+  - [x] 81.1 Implement Trust Center screen
     - Display invariants: data stays on phone, ODX-only discovery, P2P fulfillment
     - _Requirements: 339.1_
-  - [ ] 81.2 Implement Proof Dashboard
+  - [x] 81.2 Implement Proof Dashboard
     - Demonstrate what app can/cannot do
     - _Requirements: 339.2_
-  - [ ] 81.3 Implement Identity Setup flow
+  - [x] 81.3 Implement Identity Setup flow
     - Generate node identity with backup policy selection
     - _Requirements: 339.3_
-  - [ ] 81.4 Implement Consent Defaults configuration
+  - [x] 81.4 Implement Consent Defaults configuration
     - Allow consent defaults configuration
     - _Requirements: 339.4_
   - [ ]* 81.5 Write unit tests for onboarding
     - Verify no network calls except coordinator metadata
     - _Requirements: 339.5_
 
-- [ ] 82. Data Sources & Connectors Manager
-  - [ ] 82.1 Implement connector list view
+- [x] 82. Data Sources & Connectors Manager
+  - [x] 82.1 Implement connector list view
     - Display per-connector enable/disable controls
     - _Requirements: 340.1_
-  - [ ] 82.2 Implement connector status display
+  - [x] 82.2 Implement connector status display
     - Show health, last sync, data-class warnings
     - _Requirements: 340.2_
-  - [ ] 82.3 Implement import workflows
+  - [x] 82.3 Implement import workflows
     - Provide file scan and size estimates
     - _Requirements: 340.3_
   - [ ]* 82.4 Write unit tests for connector manager
     - Test enable/disable, status display, import workflows
     - _Requirements: 340.4, 340.5_
 
-- [ ] 83. Permissions Console
-  - [ ] 83.1 Implement unified permissions view
+- [x] 83. Permissions Console
+  - [x] 83.1 Implement unified permissions view
     - Display OS permissions, YACHAQ scopes, per-request exceptions
     - _Requirements: 341.1_
-  - [ ] 83.2 Implement permission presets
+  - [x] 83.2 Implement permission presets
     - Offer Minimal/Standard/Full presets with advanced toggles
     - _Requirements: 341.2_
-  - [ ] 83.3 Implement permission impact visualization
+  - [x] 83.3 Implement permission impact visualization
     - Show impact on active requests and earnings
     - _Requirements: 341.5_
   - [ ]* 83.4 Write unit tests for permissions console
     - Test preset application, permission changes
     - _Requirements: 341.3, 341.4_
 
-- [ ] 84. Checkpoint - Ensure all tests pass
+- [x] 84. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 85. ODX Index Inspector
-  - [ ] 85.1 Implement ODX label browser
+- [x] 85. ODX Index Inspector
+  - [x] 85.1 Implement ODX label browser
     - Show labels with counts/buckets only (never raw data)
     - _Requirements: 342.1_
-  - [ ] 85.2 Implement "Why did I match?" explanations
+  - [x] 85.2 Implement "Why did I match?" explanations
     - Provide match explanations per request
     - _Requirements: 342.2_
-  - [ ] 85.3 Implement "What is hidden?" section
+  - [x] 85.3 Implement "What is hidden?" section
     - Explain raw vault is never shown to coordinator
     - _Requirements: 342.3_
   - [ ]* 85.4 Write unit tests for ODX inspector
     - Verify no raw payload content displayed
     - _Requirements: 342.5_
 
-- [ ] 86. Marketplace Inbox
-  - [ ] 86.1 Implement request list view
+- [x] 86. Marketplace Inbox
+  - [x] 86.1 Implement request list view
     - Display approved requests with filters
     - _Requirements: 343.1_
-  - [ ] 86.2 Implement request detail view
+  - [x] 86.2 Implement request detail view
     - Show requester profile, reputation, scopes, output mode, TTL, identity requirement
     - _Requirements: 343.2_
-  - [ ] 86.3 Implement risk class indicators
+  - [x] 86.3 Implement risk class indicators
     - Display visual indicators for risk class (A/B/C)
     - _Requirements: 343.5_
   - [ ]* 86.4 Write unit tests for marketplace inbox
     - Test filtering, detail display, notifications
     - _Requirements: 343.3, 343.4_
 
-- [ ] 87. Consent Studio
-  - [ ] 87.1 Implement Plan Preview
+- [x] 87. Consent Studio
+  - [x] 87.1 Implement Plan Preview
     - Display plan preview with privacy impact meter
     - _Requirements: 344.1_
-  - [ ] 87.2 Implement Scope Editor
+  - [x] 87.2 Implement Scope Editor
     - Allow editing label families, time window, geo/time granularity, output mode
     - _Requirements: 344.2_
-  - [ ] 87.3 Implement Identity Reveal switch
+  - [x] 87.3 Implement Identity Reveal switch
     - Show explicit switch with default OFF
     - _Requirements: 344.3_
-  - [ ] 87.4 Implement payout change visualization
+  - [x] 87.4 Implement payout change visualization
     - Show how payout changes based on selections
     - _Requirements: 344.4_
   - [ ]* 87.5 Write unit tests for consent studio
     - Test scope editing, payout calculation, confirmation flow
     - _Requirements: 344.5_
 
-- [ ] 88. Checkpoint - Ensure all tests pass
+- [x] 88. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 89. Execution & Delivery Monitor
-  - [ ] 89.1 Implement execution progress display
+- [x] 89. Execution & Delivery Monitor
+  - [x] 89.1 Implement execution progress display
     - Show progress, resource usage, transfer stats
     - _Requirements: 345.1_
-  - [ ] 89.2 Implement ciphertext indicator
+  - [x] 89.2 Implement ciphertext indicator
     - Show that only ciphertext is transmitted
     - _Requirements: 345.2_
-  - [ ] 89.3 Implement resumability controls
+  - [x] 89.3 Implement resumability controls
     - Provide resume options for interrupted transfers
     - _Requirements: 345.3_
   - [ ]* 89.4 Write unit tests for delivery monitor
     - Test progress display, error handling, retry
     - _Requirements: 345.4, 345.5_
 
-- [ ] 90. Earnings & Receipts
-  - [ ] 90.1 Implement earnings dashboard
+- [x] 90. Earnings & Receipts
+  - [x] 90.1 Implement earnings dashboard
     - Display escrow state, payouts, receipts
     - _Requirements: 346.1_
-  - [ ] 90.2 Implement receipt export
+  - [x] 90.2 Implement receipt export
     - Provide transaction proofs without exposing data
     - _Requirements: 346.2_
-  - [ ] 90.3 Implement tax export
+  - [x] 90.3 Implement tax export
     - Provide exportable summaries in standard formats
     - _Requirements: 346.4_
   - [ ]* 90.4 Write unit tests for earnings
     - Test filtering, export, audit trail
     - _Requirements: 346.3, 346.5_
 
-- [ ] 91. Emergency Controls
-  - [ ] 91.1 Implement emergency stop
+- [x] 91. Emergency Controls
+  - [x] 91.1 Implement emergency stop
     - Stop all sharing instantly
     - _Requirements: 347.1_
-  - [ ] 91.2 Implement relationship revocation
+  - [x] 91.2 Implement relationship revocation
     - Allow revoking all requester relationships
     - _Requirements: 347.2_
-  - [ ] 91.3 Implement vault purge
+  - [x] 91.3 Implement vault purge
     - Allow category purging with strong warnings
     - _Requirements: 347.3_
   - [ ]* 91.4 Write unit tests for emergency controls
     - Test instant stop, audit logging, recovery
     - _Requirements: 347.4, 347.5_
 
-- [ ] 92. Checkpoint - Ensure all tests pass
+- [x] 92. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Requester Product Implementation
 
-- [ ] 93. Requester Portal
-  - [ ] 93.1 Implement request creation with templates
+- [x] 93. Requester Portal
+  - [x] 93.1 Implement request creation with templates
     - Provide templates for common use cases
     - _Requirements: 348.1_
-  - [ ] 93.2 Implement ODX criteria configuration
+  - [x] 93.2 Implement ODX criteria configuration
     - Allow scope definition using ODX criteria
     - _Requirements: 348.2_
-  - [ ] 93.3 Implement policy rejection feedback
+  - [x] 93.3 Implement policy rejection feedback
     - Show rejections with required downscopes
     - _Requirements: 348.3_
   - [ ]* 93.4 Write unit tests for requester portal
     - Test request creation, status display, analytics
     - _Requirements: 348.4, 348.5_
 
-- [ ] 94. Capsule Verification Tool
-  - [ ] 94.1 Implement signature verification
+- [x] 94. Capsule Verification Tool
+  - [x] 94.1 Implement signature verification
     - Verify capsule signatures
     - _Requirements: 349.1_
-  - [ ] 94.2 Implement schema validation
+  - [x] 94.2 Implement schema validation
     - Validate capsule against schema
     - _Requirements: 349.1_
-  - [ ] 94.3 Implement hash receipt verification
+  - [x] 94.3 Implement hash receipt verification
     - Verify hash receipts
     - _Requirements: 349.1_
   - [ ]* 94.4 Write unit tests for verification tool
     - Test verification success/failure, error handling
     - _Requirements: 349.3, 349.4_
 
-- [ ] 95. Requester Vetting Service
-  - [ ] 95.1 Implement tier assignment
+- [x] 95. Requester Vetting Service
+  - [x] 95.1 Implement tier assignment
     - Assign tiers based on verification level
     - _Requirements: 350.1_
-  - [ ] 95.2 Implement tier-based restrictions
+  - [x] 95.2 Implement tier-based restrictions
     - Restrict request types based on tier
     - _Requirements: 350.2_
-  - [ ] 95.3 Implement bond requirements
+  - [x] 95.3 Implement bond requirements
     - Require bonds for high-risk requests
     - _Requirements: 350.3_
   - [ ]* 95.4 Write unit tests for vetting service
     - Test tier assignment, restrictions, notifications
     - _Requirements: 350.4, 350.5_
 
-- [ ] 96. Dispute Resolution Service
-  - [ ] 96.1 Implement dispute filing
+- [x] 96. Dispute Resolution Service
+  - [x] 96.1 Implement dispute filing
     - Provide evidence-based dispute flow
     - _Requirements: 351.1_
-  - [ ] 96.2 Implement escrow hold on dispute
+  - [x] 96.2 Implement escrow hold on dispute
     - Hold relevant escrow during dispute
     - _Requirements: 351.3_
-  - [ ] 96.3 Implement dispute resolution
+  - [x] 96.3 Implement dispute resolution
     - Release or refund escrow per decision
     - _Requirements: 351.4_
   - [ ]* 96.4 Write unit tests for dispute service
     - Test filing, notification, resolution
     - _Requirements: 351.2, 351.5_
 
-- [ ] 97. Checkpoint - Ensure all tests pass
+- [x] 97. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 98. Requester SDK
-  - [ ] 98.1 Implement request creation API
+- [x] 98. Requester SDK
+  - [x] 98.1 Implement request creation API
     - Provide programmatic request creation
     - _Requirements: 352.1_
-  - [ ] 98.2 Implement capsule verification API
+  - [x] 98.2 Implement capsule verification API
     - Provide verification functions
     - _Requirements: 352.2_
-  - [ ] 98.3 Implement multi-language support
+  - [x] 98.3 Implement multi-language support
     - Support multiple programming languages
     - _Requirements: 352.3_
   - [ ]* 98.4 Write SDK integration tests
@@ -1242,55 +1242,55 @@
 
 ## Missing Module Implementation
 
-- [ ] 99. ODX Criteria Language
-  - [ ] 99.1 Implement criteria parser
+- [x] 99. ODX Criteria Language
+  - [x] 99.1 Implement criteria parser
     - Parse ODX criteria expressions
     - _Requirements: 353.1_
-  - [ ] 99.2 Implement specificity validation
+  - [x] 99.2 Implement specificity validation
     - Restrict overly specific criteria
     - _Requirements: 353.2_
-  - [ ] 99.3 Implement privacy floor enforcement
+  - [x] 99.3 Implement privacy floor enforcement
     - Include privacy floors in criteria
     - _Requirements: 353.3_
-  - [ ] 99.4 Implement static validation
+  - [x] 99.4 Implement static validation
     - Make criteria statically checkable
     - _Requirements: 353.4_
-  - [ ]* 99.5 Write property test for criteria safety
+  - [x]* 99.5 Write property test for criteria safety
     - **Property 63: ODX Criteria Safety**
     - **Validates: Requirements 353.1, 353.2**
 
-- [ ] 100. Clean-room Output Schema Library
-  - [ ] 100.1 Implement schema registry
+- [x] 100. Clean-room Output Schema Library
+  - [x] 100.1 Implement schema registry
     - Register standard output schemas
     - _Requirements: 354.1_
-  - [ ] 100.2 Implement sensitivity grading
+  - [x] 100.2 Implement sensitivity grading
     - Assign sensitivity grades to schemas
     - _Requirements: 354.2_
-  - [ ] 100.3 Implement schema enforcement
+  - [x] 100.3 Implement schema enforcement
     - Enforce schema constraints on outputs
     - _Requirements: 354.3_
-  - [ ]* 100.4 Write property test for schema enforcement
+  - [x]* 100.4 Write property test for schema enforcement
     - **Property 64: Clean-room Schema Enforcement**
     - **Validates: Requirements 354.2, 354.3**
 
-- [ ] 101. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 101. Checkpoint - Ensure all tests pass
+  - All 480 tests pass in yachaq-api module
 
-- [ ] 102. Requester Bonds Service
-  - [ ] 102.1 Implement bond requirements
+- [x] 102. Requester Bonds Service
+  - [x] 102.1 Implement bond requirements
     - Require bonds for high-risk requests
     - _Requirements: 355.1_
-  - [ ] 102.2 Implement bond forfeiture
+  - [x] 102.2 Implement bond forfeiture
     - Forfeit bonds on abuse detection
     - _Requirements: 355.2_
-  - [ ] 102.3 Implement bond return
+  - [x] 102.3 Implement bond return
     - Return bonds on successful completion
     - _Requirements: 355.4_
-  - [ ]* 102.4 Write unit tests for bonds service
+  - [x]* 102.4 Write unit tests for bonds service
     - Test requirements, forfeiture, return
     - _Requirements: 355.3, 355.5_
 
-- [ ] 103. PlanVM Safety Proofs
+- [-] 103. PlanVM Safety Proofs
   - [ ] 103.1 Document operator semantics
     - Provide complete operator documentation
     - _Requirements: 356.1_

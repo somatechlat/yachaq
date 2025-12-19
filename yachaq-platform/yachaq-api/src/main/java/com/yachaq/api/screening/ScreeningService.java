@@ -1,25 +1,34 @@
 package com.yachaq.api.screening;
 
 import com.yachaq.api.audit.AuditService;
+import com.yachaq.api.escrow.EscrowRepository;
 import com.yachaq.core.domain.AuditReceipt;
+import com.yachaq.core.domain.EscrowAccount;
 import com.yachaq.core.domain.PolicyRule;
 import com.yachaq.core.domain.Request;
 import com.yachaq.core.domain.ScreeningResult;
 import com.yachaq.core.domain.ScreeningResult.ScreenedBy;
 import com.yachaq.core.domain.ScreeningResult.ScreeningDecision;
+import com.yachaq.core.domain.Account;
+import com.yachaq.core.domain.DSProfile;
+import com.yachaq.core.repository.AccountRepository;
+import com.yachaq.core.repository.DSProfileRepository;
 import com.yachaq.core.repository.PolicyRuleRepository;
 import com.yachaq.core.repository.RequestRepository;
 import com.yachaq.core.repository.ScreeningResultRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
+/**
+ * Service for screening data requests against policy rules.
+ * Uses Spring Data JPA repositories for all database access - no raw SQL.
+ */
 @Service
 public class ScreeningService {
 
@@ -27,7 +36,9 @@ public class ScreeningService {
     private final ScreeningResultRepository screeningResultRepository;
     private final PolicyRuleRepository policyRuleRepository;
     private final AuditService auditService;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final EscrowRepository escrowRepository;
+    private final AccountRepository accountRepository;
+    private final DSProfileRepository dsProfileRepository;
 
     @Value("${yachaq.screening.policy-version:1.0.0}")
     private String policyVersion;
@@ -43,12 +54,16 @@ public class ScreeningService {
             ScreeningResultRepository screeningResultRepository,
             PolicyRuleRepository policyRuleRepository,
             AuditService auditService,
-            NamedParameterJdbcTemplate jdbcTemplate) {
+            EscrowRepository escrowRepository,
+            AccountRepository accountRepository,
+            DSProfileRepository dsProfileRepository) {
         this.requestRepository = requestRepository;
         this.screeningResultRepository = screeningResultRepository;
         this.policyRuleRepository = policyRuleRepository;
         this.auditService = auditService;
-        this.jdbcTemplate = jdbcTemplate;
+        this.escrowRepository = escrowRepository;
+        this.accountRepository = accountRepository;
+        this.dsProfileRepository = dsProfileRepository;
     }
 
     @Transactional
@@ -140,81 +155,98 @@ public class ScreeningService {
         return Duration.between(request.getDurationStart(), request.getDurationEnd()).toDays();
     }
 
+    /**
+     * Checks if the escrow account is sufficiently funded.
+     * Uses Spring Data JPA repository instead of raw SQL.
+     */
     private boolean isEscrowFunded(Request request) {
         if (request.getEscrowId() == null) {
             return false;
         }
-        String sql = """
-                SELECT funded_amount, locked_amount, status
-                FROM escrow_accounts
-                WHERE id = :id
-                """;
-        Map<String, Object> row = jdbcTemplate.query(sql,
-                new MapSqlParameterSource("id", request.getEscrowId()),
-                rs -> rs.next() ? Map.of(
-                        "funded", rs.getBigDecimal("funded_amount"),
-                        "locked", rs.getBigDecimal("locked_amount"),
-                        "status", rs.getString("status")
-                ) : null);
-        if (row == null) return false;
-        BigDecimal funded = (BigDecimal) row.get("funded");
-        String status = (String) row.get("status");
+        Optional<EscrowAccount> escrowOpt = escrowRepository.findById(request.getEscrowId());
+        if (escrowOpt.isEmpty()) {
+            return false;
+        }
+        EscrowAccount escrow = escrowOpt.get();
         BigDecimal required = request.calculateRequiredEscrow();
-        return funded.compareTo(required) >= 0 && (status.equals("FUNDED") || status.equals("LOCKED"));
+        EscrowAccount.EscrowStatus status = escrow.getStatus();
+        return escrow.getFundedAmount().compareTo(required) >= 0 
+                && (status == EscrowAccount.EscrowStatus.FUNDED || status == EscrowAccount.EscrowStatus.LOCKED);
     }
 
+    /**
+     * Checks if the requester account status is not active.
+     * Uses Spring Data JPA repository instead of raw SQL.
+     */
     private boolean requesterStatusNotActive(UUID requesterId) {
-        String sql = "SELECT status FROM requesters WHERE id = :id";
-        String status = jdbcTemplate.query(sql, new MapSqlParameterSource("id", requesterId),
-                rs -> rs.next() ? rs.getString("status") : null);
-        return status == null || !"ACTIVE".equalsIgnoreCase(status);
+        Optional<Account> accountOpt = accountRepository.findById(requesterId);
+        if (accountOpt.isEmpty()) {
+            return true; // No account found = not active
+        }
+        Account account = accountOpt.get();
+        return account.getStatus() != Account.AccountStatus.ACTIVE;
     }
 
+    /**
+     * Checks if the requester account type is not allowed.
+     * Uses Spring Data JPA repository instead of raw SQL.
+     */
     private boolean requesterAccountTypeNotAllowed(UUID requesterId) {
-        // Using tier as proxy for allowed types; block banned/suspended.
-        String sql = "SELECT tier, status FROM requesters WHERE id = :id";
-        Map<String, Object> row = jdbcTemplate.query(sql, new MapSqlParameterSource("id", requesterId),
-                rs -> rs.next() ? Map.of(
-                        "tier", rs.getString("tier"),
-                        "status", rs.getString("status")
-                ) : null);
-        if (row == null) return true;
-        String status = (String) row.get("status");
-        return !"ACTIVE".equalsIgnoreCase(status);
+        Optional<Account> accountOpt = accountRepository.findById(requesterId);
+        if (accountOpt.isEmpty()) {
+            return true; // No account found = not allowed
+        }
+        Account account = accountOpt.get();
+        return account.getStatus() != Account.AccountStatus.ACTIVE;
     }
 
+    /**
+     * Estimates cohort size based on eligibility criteria.
+     * Uses Spring Data JPA repository instead of raw SQL.
+     */
     private int estimateCohortSize(Request request) {
-        // Allowed filters: account_type, status, created_after, created_before
         Map<String, Object> criteria = request.getEligibilityCriteria();
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM ds_profiles WHERE 1=1");
-        MapSqlParameterSource params = new MapSqlParameterSource();
+        
+        // Get all DS profiles and filter in memory
+        // For production, this should use a custom repository method with Specification
+        List<DSProfile> allProfiles = dsProfileRepository.findAll();
+        
+        return (int) allProfiles.stream()
+                .filter(profile -> matchesCriteria(profile, criteria))
+                .count();
+    }
 
+    /**
+     * Checks if a DS profile matches the eligibility criteria.
+     */
+    private boolean matchesCriteria(DSProfile profile, Map<String, Object> criteria) {
         Object accountType = criteria.get("account_type");
-        if (accountType != null) {
-            sql.append(" AND account_type = :accountType");
-            params.addValue("accountType", accountType.toString());
+        if (accountType != null && !profile.getAccountType().name().equals(accountType.toString())) {
+            return false;
         }
 
         Object status = criteria.get("status");
-        if (status != null) {
-            sql.append(" AND status = :status");
-            params.addValue("status", status.toString());
+        if (status != null && !profile.getStatus().name().equals(status.toString())) {
+            return false;
         }
 
         Object createdAfter = criteria.get("created_after");
         if (createdAfter != null) {
-            sql.append(" AND created_at >= :createdAfter");
-            params.addValue("createdAfter", java.time.Instant.parse(createdAfter.toString()));
+            Instant after = Instant.parse(createdAfter.toString());
+            if (profile.getCreatedAt().isBefore(after)) {
+                return false;
+            }
         }
 
         Object createdBefore = criteria.get("created_before");
         if (createdBefore != null) {
-            sql.append(" AND created_at <= :createdBefore");
-            params.addValue("createdBefore", java.time.Instant.parse(createdBefore.toString()));
+            Instant before = Instant.parse(createdBefore.toString());
+            if (profile.getCreatedAt().isAfter(before)) {
+                return false;
+            }
         }
 
-        Integer count = jdbcTemplate.queryForObject(sql.toString(), params, Integer.class);
-        return count != null ? count : 0;
+        return true;
     }
 
     public ScreeningResultDto getScreeningResult(UUID requestId) {

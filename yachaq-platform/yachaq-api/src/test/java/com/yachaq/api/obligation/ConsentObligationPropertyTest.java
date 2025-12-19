@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class ConsentObligationPropertyTest {
 
     @Autowired
@@ -58,15 +59,21 @@ class ConsentObligationPropertyTest {
     @Autowired
     private DSProfileRepository dsProfileRepository;
 
+    @Autowired
+    private com.yachaq.api.settlement.DSBalanceRepository dsBalanceRepository;
+
     private final Random random = new Random();
 
     @BeforeEach
     void setUp() {
-        // Delete in correct order to respect foreign key constraints
+        // Use Spring Data JPA repository methods for proper database abstraction
+        // @Transactional ensures automatic rollback after each test
+        // Delete in correct order to respect FK constraints
         violationRepository.deleteAll();
         obligationRepository.deleteAll();
         auditRepository.deleteAll();
         consentRepository.deleteAll();
+        dsBalanceRepository.deleteAll();
         dsProfileRepository.deleteAll();
     }
 

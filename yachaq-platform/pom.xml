@@ -57,6 +57,7 @@
         <module>yachaq-node</module>
         <module>yachaq-api</module>
         <module>yachaq-gateway</module>
+        <module>yachaq-sdk</module>
     </modules>
 
     <dependencyManagement>

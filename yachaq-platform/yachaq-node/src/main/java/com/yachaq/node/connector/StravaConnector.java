@@ -336,50 +336,237 @@ public class StravaConnector extends AbstractConnector {
 
     /**
      * Default bridge implementation.
+     * Requires STRAVA_CLIENT_ID and STRAVA_CLIENT_SECRET environment variables.
+     * 
+     * According to Strava API docs: https://developers.strava.com/docs/authentication/
+     * OAuth 2.0 Authorization Code Flow is used for user authorization.
      */
     public static class DefaultStravaBridge implements StravaBridge {
+        
+        private static final String STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize";
+        private static final String STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
+        private static final String STRAVA_DEAUTH_URL = "https://www.strava.com/oauth/deauthorize";
+        private static final String STRAVA_API_BASE = "https://www.strava.com/api/v3";
+        
+        private final String clientId;
+        private final String clientSecret;
+        private final String redirectUri;
+        private final java.net.http.HttpClient httpClient;
+        
+        public DefaultStravaBridge() {
+            this.clientId = System.getenv("STRAVA_CLIENT_ID");
+            this.clientSecret = System.getenv("STRAVA_CLIENT_SECRET");
+            this.redirectUri = System.getenv().getOrDefault("STRAVA_REDIRECT_URI", "http://localhost:55080/callback/strava");
+            this.httpClient = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(10))
+                    .build();
+            
+            if (clientId == null || clientId.isBlank()) {
+                throw new IllegalStateException("STRAVA_CLIENT_ID environment variable is required");
+            }
+            if (clientSecret == null || clientSecret.isBlank()) {
+                throw new IllegalStateException("STRAVA_CLIENT_SECRET environment variable is required");
+            }
+        }
+
         @Override
         public CompletableFuture<String> initiateOAuth(Set<String> scopes) {
-            // In production: Open browser to https://www.strava.com/oauth/authorize
-            return CompletableFuture.completedFuture("mock_auth_code");
+            // Build authorization URL - caller must redirect user to this URL
+            String scopeParam = String.join(",", scopes);
+            String state = UUID.randomUUID().toString();
+            String authUrl = STRAVA_AUTH_URL + 
+                    "?client_id=" + clientId +
+                    "&response_type=code" +
+                    "&redirect_uri=" + java.net.URLEncoder.encode(redirectUri, java.nio.charset.StandardCharsets.UTF_8) +
+                    "&scope=" + java.net.URLEncoder.encode(scopeParam, java.nio.charset.StandardCharsets.UTF_8) +
+                    "&state=" + state +
+                    "&approval_prompt=auto";
+            
+            // Return the auth URL - actual code comes from redirect callback
+            return CompletableFuture.completedFuture(authUrl);
         }
 
         @Override
         public CompletableFuture<TokenResponse> exchangeCodeForTokens(String authCode) {
-            // In production: POST to https://www.strava.com/oauth/token
-            return CompletableFuture.completedFuture(new TokenResponse(
-                    true, "mock_access_token", "mock_refresh_token",
-                    Instant.now().plusSeconds(21600).getEpochSecond(), // 6 hours
-                    REQUIRED_SCOPES, null, null
-            ));
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    String body = "client_id=" + clientId +
+                            "&client_secret=" + clientSecret +
+                            "&code=" + authCode +
+                            "&grant_type=authorization_code";
+                    
+                    java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create(STRAVA_TOKEN_URL))
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
+                            .build();
+                    
+                    java.net.http.HttpResponse<String> response = httpClient.send(request, 
+                            java.net.http.HttpResponse.BodyHandlers.ofString());
+                    
+                    if (response.statusCode() == 200) {
+                        return parseTokenResponse(response.body());
+                    } else {
+                        return new TokenResponse(false, null, null, 0, Set.of(), 
+                                "HTTP_" + response.statusCode(), response.body());
+                    }
+                } catch (Exception e) {
+                    return new TokenResponse(false, null, null, 0, Set.of(), 
+                            "EXCHANGE_FAILED", e.getMessage());
+                }
+            });
         }
 
         @Override
         public CompletableFuture<TokenResponse> refreshTokens(String refreshToken) {
-            // In production: POST to https://www.strava.com/oauth/token with grant_type=refresh_token
-            return CompletableFuture.completedFuture(new TokenResponse(
-                    true, "new_access_token", "new_refresh_token",
-                    Instant.now().plusSeconds(21600).getEpochSecond(),
-                    REQUIRED_SCOPES, null, null
-            ));
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    String body = "client_id=" + clientId +
+                            "&client_secret=" + clientSecret +
+                            "&refresh_token=" + refreshToken +
+                            "&grant_type=refresh_token";
+                    
+                    java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create(STRAVA_TOKEN_URL))
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
+                            .build();
+                    
+                    java.net.http.HttpResponse<String> response = httpClient.send(request, 
+                            java.net.http.HttpResponse.BodyHandlers.ofString());
+                    
+                    if (response.statusCode() == 200) {
+                        return parseTokenResponse(response.body());
+                    } else {
+                        return new TokenResponse(false, null, null, 0, Set.of(), 
+                                "HTTP_" + response.statusCode(), response.body());
+                    }
+                } catch (Exception e) {
+                    return new TokenResponse(false, null, null, 0, Set.of(), 
+                            "REFRESH_FAILED", e.getMessage());
+                }
+            });
         }
 
         @Override
         public CompletableFuture<ActivitiesResponse> getActivities(String accessToken, long after, int page, int perPage) {
-            // In production: GET https://www.strava.com/api/v3/athlete/activities
-            return CompletableFuture.completedFuture(new ActivitiesResponse(List.of(), null, null));
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    String url = STRAVA_API_BASE + "/athlete/activities?page=" + page + "&per_page=" + perPage;
+                    if (after > 0) {
+                        url += "&after=" + after;
+                    }
+                    
+                    java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create(url))
+                            .header("Authorization", "Bearer " + accessToken)
+                            .GET()
+                            .build();
+                    
+                    java.net.http.HttpResponse<String> response = httpClient.send(request, 
+                            java.net.http.HttpResponse.BodyHandlers.ofString());
+                    
+                    if (response.statusCode() == 429) {
+                        return new ActivitiesResponse(List.of(), "RATE_LIMITED", "Rate limit exceeded");
+                    } else if (response.statusCode() == 200) {
+                        return parseActivitiesResponse(response.body());
+                    } else {
+                        return new ActivitiesResponse(List.of(), "HTTP_" + response.statusCode(), response.body());
+                    }
+                } catch (Exception e) {
+                    return new ActivitiesResponse(List.of(), "API_ERROR", e.getMessage());
+                }
+            });
         }
 
         @Override
         public CompletableFuture<AthleteResponse> getAthlete(String accessToken) {
-            // In production: GET https://www.strava.com/api/v3/athlete
-            return CompletableFuture.completedFuture(new AthleteResponse(true, "12345", null, null));
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create(STRAVA_API_BASE + "/athlete"))
+                            .header("Authorization", "Bearer " + accessToken)
+                            .GET()
+                            .build();
+                    
+                    java.net.http.HttpResponse<String> response = httpClient.send(request, 
+                            java.net.http.HttpResponse.BodyHandlers.ofString());
+                    
+                    if (response.statusCode() == 200) {
+                        String athleteId = extractJsonString(response.body(), "id");
+                        return new AthleteResponse(true, athleteId, null, null);
+                    } else {
+                        return new AthleteResponse(false, null, "HTTP_" + response.statusCode(), response.body());
+                    }
+                } catch (Exception e) {
+                    return new AthleteResponse(false, null, "API_ERROR", e.getMessage());
+                }
+            });
         }
 
         @Override
         public CompletableFuture<Void> deauthorize(String accessToken) {
-            // In production: POST to https://www.strava.com/oauth/deauthorize
-            return CompletableFuture.completedFuture(null);
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create(STRAVA_DEAUTH_URL))
+                            .header("Authorization", "Bearer " + accessToken)
+                            .POST(java.net.http.HttpRequest.BodyPublishers.noBody())
+                            .build();
+                    
+                    httpClient.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                    return null;
+                } catch (Exception e) {
+                    // Log but don't fail - token will expire anyway
+                    return null;
+                }
+            });
+        }
+        
+        private TokenResponse parseTokenResponse(String json) {
+            try {
+                String accessToken = extractJsonString(json, "access_token");
+                String refreshToken = extractJsonString(json, "refresh_token");
+                long expiresAt = extractJsonLong(json, "expires_at");
+                
+                return new TokenResponse(true, accessToken, refreshToken, expiresAt, REQUIRED_SCOPES, null, null);
+            } catch (Exception e) {
+                return new TokenResponse(false, null, null, 0, Set.of(), "PARSE_ERROR", e.getMessage());
+            }
+        }
+        
+        private ActivitiesResponse parseActivitiesResponse(String json) {
+            // Simplified parsing - returns empty list, real implementation would parse activities
+            // Full implementation would use Jackson to parse the Strava API response
+            return new ActivitiesResponse(List.of(), null, null);
+        }
+        
+        private String extractJsonString(String json, String key) {
+            // Handle both string and numeric values
+            String stringPattern = "\"" + key + "\":\"";
+            int start = json.indexOf(stringPattern);
+            if (start >= 0) {
+                start += stringPattern.length();
+                int end = json.indexOf("\"", start);
+                return end > start ? json.substring(start, end) : null;
+            }
+            // Try numeric pattern
+            String numPattern = "\"" + key + "\":";
+            start = json.indexOf(numPattern);
+            if (start >= 0) {
+                start += numPattern.length();
+                StringBuilder sb = new StringBuilder();
+                while (start < json.length() && (Character.isDigit(json.charAt(start)) || json.charAt(start) == '-')) {
+                    sb.append(json.charAt(start++));
+                }
+                return sb.length() > 0 ? sb.toString() : null;
+            }
+            return null;
+        }
+        
+        private long extractJsonLong(String json, String key) {
+            String value = extractJsonString(json, key);
+            return value != null ? Long.parseLong(value) : 0;
         }
     }
 }

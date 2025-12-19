@@ -45,7 +45,18 @@ import java.util.Collections;
  */
 public class ConsentRegistryContract extends Contract {
 
-    public static final String BINARY = ""; // Compiled bytecode would go here
+    /**
+     * Compiled Solidity bytecode.
+     * 
+     * To generate: 
+     * 1. Write Solidity contract in contracts/ConsentRegistry.sol
+     * 2. Compile with: solc --bin --abi contracts/ConsentRegistry.sol
+     * 3. Paste the bytecode here
+     * 
+     * The contract must be deployed to the blockchain before this wrapper can be used.
+     * Use ConsentRegistryContract.load() with the deployed contract address.
+     */
+    public static final String BINARY = "";
 
     public static final String FUNC_REGISTERCONSENT = "registerConsent";
     public static final String FUNC_REVOKECONSENT = "revokeConsent";

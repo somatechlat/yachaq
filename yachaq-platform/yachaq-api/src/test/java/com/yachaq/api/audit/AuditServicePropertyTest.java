@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class AuditServicePropertyTest {
 
     @Autowired
@@ -41,6 +42,8 @@ class AuditServicePropertyTest {
 
     @BeforeEach
     void setUp() {
+        // Use Spring Data JPA repository methods for proper database abstraction
+        // @Transactional ensures automatic rollback after each test
         auditRepository.deleteAll();
     }
 

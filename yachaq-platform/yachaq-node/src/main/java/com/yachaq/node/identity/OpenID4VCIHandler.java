@@ -2,6 +2,7 @@ package com.yachaq.node.identity;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.HashMap;
 
 /**
  * OpenID4VCI (Verifiable Credential Issuance) protocol handler.
@@ -123,23 +124,98 @@ public class OpenID4VCIHandler {
     }
 
     private VerifiableCredential parseCredential(String credentialData) {
-        // Simplified parsing - in production use proper JWT/JSON-LD parsing
-        return new VerifiableCredential(
-                "urn:uuid:" + UUID.randomUUID(),
-                List.of("VerifiableCredential"),
-                "did:example:issuer",
-                Instant.now(),
-                Instant.now().plusSeconds(365 * 24 * 3600),
-                Map.of("id", "did:example:subject"),
-                new VerifiableCredential.Proof(
-                        "Ed25519Signature2020",
-                        Instant.now(),
-                        "did:example:issuer#key-1",
-                        "assertionMethod",
-                        credentialData
-                ),
-                null
-        );
+        // Parse JWT credential format (header.payload.signature)
+        // According to W3C VC Data Model: https://www.w3.org/TR/vc-data-model/
+        
+        if (credentialData == null || credentialData.isBlank()) {
+            throw new CredentialIssuanceException("INVALID_CREDENTIAL", "Credential data is empty");
+        }
+        
+        String[] parts = credentialData.split("\\.");
+        if (parts.length != 3) {
+            throw new CredentialIssuanceException("INVALID_FORMAT", 
+                    "Expected JWT format (header.payload.signature), got " + parts.length + " parts");
+        }
+        
+        try {
+            // Decode the payload (middle part)
+            String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]));
+            
+            // Extract fields from payload
+            String id = extractJsonField(payloadJson, "jti");
+            if (id == null) {
+                id = "urn:uuid:" + UUID.randomUUID();
+            }
+            
+            String issuer = extractJsonField(payloadJson, "iss");
+            if (issuer == null || issuer.isBlank()) {
+                throw new CredentialIssuanceException("MISSING_ISSUER", "Credential missing issuer (iss) claim");
+            }
+            
+            String subject = extractJsonField(payloadJson, "sub");
+            if (subject == null || subject.isBlank()) {
+                throw new CredentialIssuanceException("MISSING_SUBJECT", "Credential missing subject (sub) claim");
+            }
+            
+            // Parse timestamps
+            long iat = extractJsonLong(payloadJson, "iat");
+            long exp = extractJsonLong(payloadJson, "exp");
+            Instant issuanceDate = iat > 0 ? Instant.ofEpochSecond(iat) : Instant.now();
+            Instant expirationDate = exp > 0 ? Instant.ofEpochSecond(exp) : Instant.now().plusSeconds(365 * 24 * 3600);
+            
+            // Extract credential type
+            String vcType = extractJsonField(payloadJson, "type");
+            List<String> types = vcType != null ? 
+                    Arrays.asList(vcType.split(",")) : 
+                    List.of("VerifiableCredential");
+            
+            // Build credential subject
+            Map<String, Object> credentialSubject = new HashMap<>();
+            credentialSubject.put("id", subject);
+            
+            // Create proof from JWT signature
+            VerifiableCredential.Proof proof = new VerifiableCredential.Proof(
+                    "JwtProof2020",
+                    issuanceDate,
+                    issuer + "#key-1",
+                    "assertionMethod",
+                    parts[2] // The signature
+            );
+            
+            return new VerifiableCredential(
+                    id,
+                    types,
+                    issuer,
+                    issuanceDate,
+                    expirationDate,
+                    credentialSubject,
+                    proof,
+                    null
+            );
+        } catch (IllegalArgumentException e) {
+            throw new CredentialIssuanceException("DECODE_ERROR", "Failed to decode credential: " + e.getMessage());
+        }
+    }
+    
+    private String extractJsonField(String json, String field) {
+        String pattern = "\"" + field + "\":\"";
+        int start = json.indexOf(pattern);
+        if (start < 0) return null;
+        start += pattern.length();
+        int end = json.indexOf("\"", start);
+        return end > start ? json.substring(start, end) : null;
+    }
+    
+    private long extractJsonLong(String json, String field) {
+        String pattern = "\"" + field + "\":";
+        int start = json.indexOf(pattern);
+        if (start < 0) return 0;
+        start += pattern.length();
+        StringBuilder sb = new StringBuilder();
+        while (start < json.length() && Character.isDigit(json.charAt(start))) {
+            sb.append(json.charAt(start++));
+        }
+        return sb.length() > 0 ? Long.parseLong(sb.toString()) : 0;
     }
 
     /**

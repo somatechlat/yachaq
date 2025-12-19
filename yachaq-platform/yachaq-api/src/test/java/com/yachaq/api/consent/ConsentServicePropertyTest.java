@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class ConsentServicePropertyTest {
 
     @Autowired
@@ -47,9 +48,11 @@ class ConsentServicePropertyTest {
 
     @BeforeEach
     void setUp() {
+        // Use Spring Data JPA repository methods for proper database abstraction
+        // @Transactional ensures automatic rollback after each test
+        // Delete in correct order to respect FK constraints
         auditRepository.deleteAll();
         consentRepository.deleteAll();
-        // Note: DS profiles are cleaned up per iteration to avoid FK constraint issues
     }
 
 

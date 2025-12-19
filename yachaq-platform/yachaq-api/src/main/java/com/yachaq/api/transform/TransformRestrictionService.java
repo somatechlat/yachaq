@@ -303,9 +303,8 @@ public class TransformRestrictionService {
             }
         }
 
-        // Execute transforms (in production, this would apply actual transforms)
-        // For now, we just log the successful execution
-        Object outputData = inputData; // Placeholder - actual transform logic would go here
+        // Execute transforms by applying each transform in sequence
+        Object outputData = applyTransforms(inputData, requestedTransforms);
         String outputHash = computeHash(outputData != null ? outputData.toString() : "");
 
         try {
@@ -354,6 +353,159 @@ public class TransformRestrictionService {
         }
 
         queryPlan.setAllowedTransforms(contract.getAllowedTransforms());
+    }
+
+    /**
+     * Applies a sequence of transforms to input data.
+     * Supported transforms: aggregate, anonymize, filter, project, hash, truncate
+     */
+    @SuppressWarnings("unchecked")
+    private Object applyTransforms(Object inputData, List<String> transforms) {
+        if (inputData == null || transforms == null || transforms.isEmpty()) {
+            return inputData;
+        }
+        
+        Object result = inputData;
+        for (String transform : transforms) {
+            result = applySingleTransform(result, transform);
+        }
+        return result;
+    }
+    
+    /**
+     * Applies a single transform to data.
+     */
+    @SuppressWarnings("unchecked")
+    private Object applySingleTransform(Object data, String transform) {
+        if (data == null) {
+            return null;
+        }
+        
+        return switch (transform.toLowerCase()) {
+            case "aggregate" -> applyAggregate(data);
+            case "anonymize" -> applyAnonymize(data);
+            case "hash" -> applyHash(data);
+            case "truncate" -> applyTruncate(data);
+            case "filter" -> applyFilter(data);
+            case "project" -> applyProject(data);
+            case "count" -> applyCount(data);
+            case "sum" -> applySum(data);
+            case "average" -> applyAverage(data);
+            default -> data; // Unknown transform passes through
+        };
+    }
+    
+    private Object applyAggregate(Object data) {
+        if (data instanceof List<?> list) {
+            return Map.of("count", list.size(), "aggregated", true);
+        }
+        return Map.of("count", 1, "aggregated", true);
+    }
+    
+    private Object applyAnonymize(Object data) {
+        if (data instanceof Map<?, ?> map) {
+            Map<String, Object> result = new HashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = entry.getKey().toString();
+                Object value = entry.getValue();
+                // Anonymize PII fields
+                if (isPiiField(key)) {
+                    result.put(key, "[ANONYMIZED]");
+                } else if (value instanceof Map) {
+                    result.put(key, applyAnonymize(value));
+                } else {
+                    result.put(key, value);
+                }
+            }
+            return result;
+        }
+        return data;
+    }
+    
+    private boolean isPiiField(String fieldName) {
+        String lower = fieldName.toLowerCase();
+        return lower.contains("name") || lower.contains("email") || 
+               lower.contains("phone") || lower.contains("address") ||
+               lower.contains("ssn") || lower.contains("dob");
+    }
+    
+    private Object applyHash(Object data) {
+        return computeHash(data.toString());
+    }
+    
+    private Object applyTruncate(Object data) {
+        if (data instanceof String str) {
+            return str.length() > 100 ? str.substring(0, 100) + "..." : str;
+        }
+        if (data instanceof List<?> list) {
+            return list.size() > 10 ? list.subList(0, 10) : list;
+        }
+        return data;
+    }
+    
+    private Object applyFilter(Object data) {
+        // Filter removes null values
+        if (data instanceof Map<?, ?> map) {
+            Map<String, Object> result = new HashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getValue() != null) {
+                    result.put(entry.getKey().toString(), entry.getValue());
+                }
+            }
+            return result;
+        }
+        if (data instanceof List<?> list) {
+            return list.stream().filter(item -> item != null).toList();
+        }
+        return data;
+    }
+    
+    private Object applyProject(Object data) {
+        // Project returns only non-sensitive fields
+        if (data instanceof Map<?, ?> map) {
+            Map<String, Object> result = new HashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = entry.getKey().toString();
+                if (!isPiiField(key)) {
+                    result.put(key, entry.getValue());
+                }
+            }
+            return result;
+        }
+        return data;
+    }
+    
+    private Object applyCount(Object data) {
+        if (data instanceof List<?> list) {
+            return Map.of("count", list.size());
+        }
+        if (data instanceof Map<?, ?> map) {
+            return Map.of("count", map.size());
+        }
+        return Map.of("count", 1);
+    }
+    
+    private Object applySum(Object data) {
+        if (data instanceof List<?> list) {
+            double sum = list.stream()
+                    .filter(item -> item instanceof Number)
+                    .mapToDouble(item -> ((Number) item).doubleValue())
+                    .sum();
+            return Map.of("sum", sum);
+        }
+        return data;
+    }
+    
+    private Object applyAverage(Object data) {
+        if (data instanceof List<?> list) {
+            double avg = list.stream()
+                    .filter(item -> item instanceof Number)
+                    .mapToDouble(item -> ((Number) item).doubleValue())
+                    .average()
+                    .orElse(0.0);
+            return Map.of("average", avg);
+        }
+        return data;
     }
 
     /**

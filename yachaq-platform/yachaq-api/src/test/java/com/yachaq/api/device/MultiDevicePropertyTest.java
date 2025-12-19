@@ -12,11 +12,13 @@ import com.yachaq.core.repository.DeviceHealthEventRepository;
 import com.yachaq.core.repository.DeviceRepository;
 import com.yachaq.core.repository.DSProfileRepository;
 import com.yachaq.core.repository.RefreshTokenRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Random;
@@ -63,23 +65,34 @@ class MultiDevicePropertyTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
-    private jakarta.persistence.EntityManager entityManager;
+    private com.yachaq.api.settlement.DSBalanceRepository dsBalanceRepository;
+
+    @Autowired
+    private com.yachaq.core.repository.ConsentContractRepository consentContractRepository;
+
+    @Autowired
+    private com.yachaq.core.repository.DeviceAttestationRepository deviceAttestationRepository;
+
+    @Autowired
+    private com.yachaq.api.settlement.PayoutInstructionRepository payoutInstructionRepository;
 
     private final Random random = new Random();
 
     @BeforeEach
     void setUp() {
-        // Clear replaced_by references first to avoid self-referential FK issues
-        entityManager.createNativeQuery("UPDATE refresh_tokens SET replaced_by = NULL").executeUpdate();
-        refreshTokenRepository.deleteAll();
+        // Use Spring Data JPA repository methods for proper database abstraction
+        // @Transactional ensures automatic rollback after each test
+        // Delete in correct order to respect FK constraints
         dataLocationRepository.deleteAll();
         healthEventRepository.deleteAll();
-        // Clear device replacement FK references before deleting devices
-        entityManager.createNativeQuery("UPDATE devices SET replacement_device_id = NULL").executeUpdate();
+        deviceAttestationRepository.deleteAll();
+        payoutInstructionRepository.deleteAll();
+        dsBalanceRepository.deleteAll();
+        consentContractRepository.deleteAll();
+        refreshTokenRepository.deleteAll();
         deviceRepository.deleteAll();
         auditRepository.deleteAll();
         dsProfileRepository.deleteAll();
-        entityManager.flush();
     }
 
     /**

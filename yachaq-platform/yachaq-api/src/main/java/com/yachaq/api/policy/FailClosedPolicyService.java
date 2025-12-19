@@ -1,10 +1,8 @@
 package com.yachaq.api.policy;
 
 import com.yachaq.api.audit.AuditService;
-import com.yachaq.api.audit.MerkleTree;
-import com.yachaq.core.domain.AuditReceipt;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import com.yachaq.core.domain.PolicyDecisionReceipt;
+import com.yachaq.core.repository.PolicyDecisionReceiptRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +23,8 @@ import java.util.*;
  * - Broaden cohorts on uncertainty
  * - Log all policy decisions with reason codes
  * - Never fail-open (allow access on error)
+ * 
+ * Uses Spring Data JPA repositories for all database access - no raw SQL.
  */
 @Service
 public class FailClosedPolicyService {
@@ -33,14 +33,14 @@ public class FailClosedPolicyService {
     private static final int DEFAULT_COHORT_BROADENING_FACTOR = 2;
 
     private final AuditService auditService;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final PolicyDecisionReceiptRepository policyDecisionReceiptRepository;
     private final String policyVersion;
 
     public FailClosedPolicyService(
             AuditService auditService,
-            NamedParameterJdbcTemplate jdbcTemplate) {
+            PolicyDecisionReceiptRepository policyDecisionReceiptRepository) {
         this.auditService = auditService;
-        this.jdbcTemplate = jdbcTemplate;
+        this.policyDecisionReceiptRepository = policyDecisionReceiptRepository;
         this.policyVersion = DEFAULT_POLICY_VERSION;
     }
 
@@ -255,23 +255,18 @@ public class FailClosedPolicyService {
 
     /**
      * Logs policy decision for audit trail.
+     * Uses Spring Data JPA repository instead of raw SQL.
      */
     private void logDecision(PolicyContext context, PolicyDecision decision) {
-        String sql = """
-                INSERT INTO policy_decision_receipts 
-                (id, decision_type, decision, campaign_id, requester_id, reason_codes, policy_version, created_at)
-                VALUES (:id, :decisionType, :decision, :campaignId, :requesterId, :reasonCodes, :policyVersion, :createdAt)
-                """;
-
-        jdbcTemplate.update(sql, new MapSqlParameterSource()
-                .addValue("id", UUID.randomUUID())
-                .addValue("decisionType", "POLICY_EVALUATION")
-                .addValue("decision", decision.decision().name())
-                .addValue("campaignId", context.campaignId())
-                .addValue("requesterId", context.requesterId())
-                .addValue("reasonCodes", String.join(",", decision.reasonCodes()))
-                .addValue("policyVersion", policyVersion)
-                .addValue("createdAt", Instant.now()));
+        PolicyDecisionReceipt receipt = PolicyDecisionReceipt.create(
+                "POLICY_EVALUATION",
+                decision.decision().name(),
+                context.campaignId(),
+                context.requesterId(),
+                decision.reasonCodes(),
+                policyVersion
+        );
+        policyDecisionReceiptRepository.save(receipt);
     }
 
     // Factory methods for decisions
