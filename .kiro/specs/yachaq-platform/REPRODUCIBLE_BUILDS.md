@@ -6,9 +6,10 @@ This document describes the reproducible build verification procedure for the YA
 
 ## Requirements
 
-- **Requirement 333.1**: Use reproducible builds with published binary hashes
-- **Requirement 338.5**: Reproducible build verification is documented and repeatable
+- **Requirement 357.1**: Sign all releases with GPG keys
 - **Requirement 357.2**: Support reproducible build verification procedure
+- **Requirement 357.3**: Publish Software Bill of Materials (SBOM)
+- **Requirement 357.4**: Document verification procedure
 
 ## Build Environment
 
@@ -19,6 +20,7 @@ This document describes the reproducible build verification procedure for the YA
 | JDK | 21 | Java compilation |
 | Maven | 3.9.x | Build automation |
 | Git | 2.x | Source control |
+| GPG | 2.x | Artifact signing |
 
 ### Environment Variables
 
@@ -28,10 +30,48 @@ export TZ=UTC
 
 # Ensure consistent locale
 export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
+export LC_ALL=en_US.UTF_8
 
-# Disable Maven timestamp in manifests
-export MAVEN_OPTS="-Dproject.build.outputTimestamp=2024-01-01T00:00:00Z"
+# Reproducible build timestamp (set in pom.xml)
+# project.build.outputTimestamp=2024-01-01T00:00:00Z
+```
+
+## Release Signing
+
+### GPG Key Setup
+
+```bash
+# Generate a new GPG key (if needed)
+gpg --full-generate-key
+
+# List keys
+gpg --list-secret-keys --keyid-format=long
+
+# Export public key for distribution
+gpg --armor --export YOUR_KEY_ID > yachaq-release-key.asc
+```
+
+### Signed Release Build
+
+```bash
+# Build with signing enabled
+mvn clean package -Prelease -DskipTests
+
+# This will:
+# 1. Compile all modules
+# 2. Generate SHA-256 and SHA-512 checksums
+# 3. Sign all artifacts with GPG
+# 4. Generate CycloneDX SBOM
+```
+
+### SBOM Generation Only
+
+```bash
+# Generate SBOM without full release
+mvn package -Psbom -DskipTests
+
+# Output: target/yachaq-platform-sbom.json
+# Output: target/yachaq-platform-sbom.xml
 ```
 
 ## Verification Procedure
@@ -50,20 +90,32 @@ git checkout <release-tag>
 # Verify commit signature (if signed)
 git verify-commit HEAD
 
+# Verify tag signature
+git verify-tag <release-tag>
+
 # Compute source hash
 find . -name "*.java" -type f | sort | xargs sha256sum | sha256sum
 ```
 
-### Step 3: Build from Source
+### Step 3: Verify GPG Signature
+
+```bash
+# Import YACHAQ release key
+gpg --import yachaq-release-key.asc
+
+# Verify artifact signature
+gpg --verify yachaq-api-1.0.0.jar.asc yachaq-api-1.0.0.jar
+```
+
+### Step 4: Build from Source
 
 ```bash
 # Clean build with reproducible settings
 mvn clean package -DskipTests \
-    -Dproject.build.outputTimestamp=2024-01-01T00:00:00Z \
-    -Dmaven.build.timestamp.format=yyyy-MM-dd'T'HH:mm:ss'Z'
+    -Dproject.build.outputTimestamp=2024-01-01T00:00:00Z
 ```
 
-### Step 4: Compute Binary Hashes
+### Step 5: Compute Binary Hashes
 
 ```bash
 # Compute hashes for all JAR files
@@ -72,14 +124,30 @@ find . -name "*.jar" -path "*/target/*" | sort | while read jar; do
 done > build-hashes.txt
 ```
 
-### Step 5: Compare with Published Hashes
+### Step 6: Compare with Published Hashes
 
 ```bash
 # Download published hashes
 curl -O https://releases.yachaq.io/<version>/hashes.txt
 
+# Verify signature of hash file
+gpg --verify hashes.txt.sig hashes.txt
+
 # Compare
 diff build-hashes.txt hashes.txt
+```
+
+### Step 7: Verify SBOM
+
+```bash
+# Download SBOM
+curl -O https://releases.yachaq.io/<version>/yachaq-platform-sbom.json
+
+# Verify SBOM signature
+gpg --verify yachaq-platform-sbom.json.sig yachaq-platform-sbom.json
+
+# Validate SBOM format (requires cyclonedx-cli)
+cyclonedx validate --input-file yachaq-platform-sbom.json
 ```
 
 ## Automated Verification Tests

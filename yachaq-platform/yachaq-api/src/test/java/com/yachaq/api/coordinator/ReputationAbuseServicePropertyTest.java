@@ -1,12 +1,20 @@
 package com.yachaq.api.coordinator;
 
+import com.yachaq.api.YachaqApiApplication;
 import com.yachaq.api.audit.AuditService;
+import com.yachaq.api.config.TestcontainersConfiguration;
 import com.yachaq.api.coordinator.ReputationAbuseService.*;
-import com.yachaq.core.domain.AuditReceipt;
+import com.yachaq.core.repository.AuditReceiptRepository;
 import net.jqwik.api.*;
 import net.jqwik.api.constraints.*;
+import net.jqwik.spring.JqwikSpringSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,38 +25,33 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * Property-based tests for Coordinator Reputation and Abuse Prevention Service.
  * Requirement 324: Coordinator Reputation and Abuse Prevention.
+ * 
+ * VIBE CODING RULES COMPLIANCE:
+ * - Rule #1: NO MOCKS - Uses real PostgreSQL via Docker
+ * - Rule #4: REAL IMPLEMENTATIONS - All services are real Spring beans
+ * - Rule #7: REAL DATA & SERVERS - Tests against real Docker PostgreSQL
  */
+@JqwikSpringSupport
+@SpringBootTest(classes = YachaqApiApplication.class)
+@Import(TestcontainersConfiguration.class)
+@ActiveProfiles("test")
+@Transactional
 class ReputationAbuseServicePropertyTest {
 
-    private TestAuditService auditService;
+    @Autowired
+    private AuditService auditService;
+
+    @Autowired
     private ReputationAbuseService service;
+
+    @Autowired
+    private AuditReceiptRepository auditReceiptRepository;
 
     @BeforeEach
     void setUp() {
-        initializeService();
+        // Clean up for each test
+        auditReceiptRepository.deleteAll();
     }
-
-    private void initializeService() {
-        if (service == null) {
-            auditService = new TestAuditService();
-            service = new ReputationAbuseService(auditService);
-        }
-    }
-
-    private ReputationAbuseService getService() {
-        if (service == null) {
-            initializeService();
-        }
-        return service;
-    }
-
-    private TestAuditService getAuditService() {
-        if (auditService == null) {
-            initializeService();
-        }
-        return auditService;
-    }
-
 
     // ==================== Requirement 324.1: Rate Limiting ====================
 
@@ -56,7 +59,7 @@ class ReputationAbuseServicePropertyTest {
     @Label("324.1: First request is always allowed")
     void firstRequestIsAlwaysAllowed() {
         UUID requesterId = UUID.randomUUID();
-        RateLimitResult result = getService().checkRateLimit(requesterId);
+        RateLimitResult result = service.checkRateLimit(requesterId);
 
         assertThat(result.allowed()).isTrue();
         assertThat(result.remainingInWindow()).isGreaterThan(0);
@@ -72,7 +75,7 @@ class ReputationAbuseServicePropertyTest {
         // Make requests until limit is reached
         int allowedCount = 0;
         for (int i = 0; i < 20; i++) {
-            RateLimitResult result = getService().checkRateLimit(requesterId);
+            RateLimitResult result = service.checkRateLimit(requesterId);
             if (result.allowed()) {
                 allowedCount++;
             } else {
@@ -84,7 +87,7 @@ class ReputationAbuseServicePropertyTest {
         assertThat(allowedCount).isLessThan(20);
 
         // Next request should be denied
-        RateLimitResult result = getService().checkRateLimit(requesterId);
+        RateLimitResult result = service.checkRateLimit(requesterId);
         assertThat(result.allowed()).isFalse();
         assertThat(result.message()).contains("limit");
         assertThat(result.retryAfter()).isNotNull();
@@ -98,11 +101,11 @@ class ReputationAbuseServicePropertyTest {
 
         // Exhaust requester1's limit
         for (int i = 0; i < 15; i++) {
-            getService().checkRateLimit(requester1);
+            service.checkRateLimit(requester1);
         }
 
         // Requester2 should still be allowed
-        RateLimitResult result = getService().checkRateLimit(requester2);
+        RateLimitResult result = service.checkRateLimit(requester2);
         assertThat(result.allowed()).isTrue();
     }
 
@@ -112,7 +115,7 @@ class ReputationAbuseServicePropertyTest {
     @Label("324.2: New requesters start with initial reputation")
     void newRequestersStartWithInitialReputation() {
         UUID requesterId = UUID.randomUUID();
-        RequesterReputation reputation = getService().getOrCreateReputation(requesterId);
+        RequesterReputation reputation = service.getOrCreateReputation(requesterId);
 
         assertThat(reputation.score()).isEqualTo(BigDecimal.valueOf(50));
         assertThat(reputation.getTier()).isEqualTo(ReputationTier.NEUTRAL);
@@ -124,12 +127,12 @@ class ReputationAbuseServicePropertyTest {
         UUID requesterId = UUID.randomUUID();
 
         // Lost dispute should decrease reputation
-        RequesterReputation afterLoss = getService().recordDisputeOutcome(
+        RequesterReputation afterLoss = service.recordDisputeOutcome(
                 requesterId, DisputeOutcome.REQUESTER_LOST);
         assertThat(afterLoss.score()).isLessThan(BigDecimal.valueOf(50));
 
         // Won dispute should increase reputation
-        RequesterReputation afterWin = getService().recordDisputeOutcome(
+        RequesterReputation afterWin = service.recordDisputeOutcome(
                 requesterId, DisputeOutcome.REQUESTER_WON);
         assertThat(afterWin.score()).isGreaterThan(afterLoss.score());
     }
@@ -141,17 +144,17 @@ class ReputationAbuseServicePropertyTest {
 
         // Many lost disputes should not go below 0
         for (int i = 0; i < 50; i++) {
-            getService().recordDisputeOutcome(requesterId, DisputeOutcome.REQUESTER_LOST);
+            service.recordDisputeOutcome(requesterId, DisputeOutcome.REQUESTER_LOST);
         }
-        RequesterReputation lowRep = getService().getOrCreateReputation(requesterId);
+        RequesterReputation lowRep = service.getOrCreateReputation(requesterId);
         assertThat(lowRep.score()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
 
         // Reset and test upper bound
         UUID requesterId2 = UUID.randomUUID();
         for (int i = 0; i < 100; i++) {
-            getService().recordDisputeOutcome(requesterId2, DisputeOutcome.REQUESTER_WON);
+            service.recordDisputeOutcome(requesterId2, DisputeOutcome.REQUESTER_WON);
         }
-        RequesterReputation highRep = getService().getOrCreateReputation(requesterId2);
+        RequesterReputation highRep = service.getOrCreateReputation(requesterId2);
         assertThat(highRep.score()).isLessThanOrEqualTo(BigDecimal.valueOf(100));
     }
 
@@ -160,11 +163,11 @@ class ReputationAbuseServicePropertyTest {
     void reputationHistoryIsMaintained() {
         UUID requesterId = UUID.randomUUID();
 
-        getService().recordDisputeOutcome(requesterId, DisputeOutcome.REQUESTER_WON);
-        getService().recordDisputeOutcome(requesterId, DisputeOutcome.REQUESTER_LOST);
-        getService().recordSuccessfulRequest(requesterId);
+        service.recordDisputeOutcome(requesterId, DisputeOutcome.REQUESTER_WON);
+        service.recordDisputeOutcome(requesterId, DisputeOutcome.REQUESTER_LOST);
+        service.recordSuccessfulRequest(requesterId);
 
-        RequesterReputation reputation = getService().getOrCreateReputation(requesterId);
+        RequesterReputation reputation = service.getOrCreateReputation(requesterId);
         assertThat(reputation.history()).hasSize(3);
     }
 
@@ -185,10 +188,10 @@ class ReputationAbuseServicePropertyTest {
                     Instant.now(),
                     "Test signal"
             );
-            getService().recordAbuseSignal(signal);
+            service.recordAbuseSignal(signal);
         }
 
-        List<AbuseSignalAggregate> signals = getService().getAbuseSignals(requesterId);
+        List<AbuseSignalAggregate> signals = service.getAbuseSignals(requesterId);
         assertThat(signals).hasSize(1);
         assertThat(signals.get(0).count().get()).isEqualTo(3);
     }
@@ -208,10 +211,10 @@ class ReputationAbuseServicePropertyTest {
                     Instant.now(),
                     "Test signal " + i
             );
-            getService().recordAbuseSignal(signal);
+            service.recordAbuseSignal(signal);
         }
 
-        List<AbuseSignalAggregate> signals = getService().getAbuseSignals(requesterId);
+        List<AbuseSignalAggregate> signals = service.getAbuseSignals(requesterId);
         assertThat(signals).hasSize(1);
         assertThat(signals.get(0).count().get()).isEqualTo(1); // Only counted once
     }
@@ -220,7 +223,7 @@ class ReputationAbuseServicePropertyTest {
     @Label("324.3: Abuse signals affect reputation after threshold")
     void abuseSignalsAffectReputationAfterThreshold() {
         UUID requesterId = UUID.randomUUID();
-        BigDecimal initialScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal initialScore = service.getOrCreateReputation(requesterId).score();
 
         // Record signals from 5 different nodes (threshold)
         for (int i = 0; i < 5; i++) {
@@ -231,10 +234,10 @@ class ReputationAbuseServicePropertyTest {
                     Instant.now(),
                     "Test signal"
             );
-            getService().recordAbuseSignal(signal);
+            service.recordAbuseSignal(signal);
         }
 
-        BigDecimal finalScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal finalScore = service.getOrCreateReputation(requesterId).score();
         assertThat(finalScore).isLessThan(initialScore);
     }
 
@@ -252,7 +255,7 @@ class ReputationAbuseServicePropertyTest {
                 "morning"
         );
 
-        SybilAnalysisResult result = getService().analyzeSybilPatterns(requesterId, pattern);
+        SybilAnalysisResult result = service.analyzeSybilPatterns(requesterId, pattern);
         assertThat(result.suspicious()).isFalse();
     }
 
@@ -271,7 +274,7 @@ class ReputationAbuseServicePropertyTest {
         SybilAnalysisResult lastResult = null;
         for (int i = 0; i < 6; i++) {
             UUID requesterId = UUID.randomUUID();
-            lastResult = getService().analyzeSybilPatterns(requesterId, pattern);
+            lastResult = service.analyzeSybilPatterns(requesterId, pattern);
         }
 
         // Should be flagged after threshold
@@ -292,7 +295,7 @@ class ReputationAbuseServicePropertyTest {
                 "afternoon"
         );
 
-        SybilAnalysisResult result = getService().analyzeSybilPatterns(requesterId, pattern);
+        SybilAnalysisResult result = service.analyzeSybilPatterns(requesterId, pattern);
 
         // If suspicious, fingerprint should be a hash (not contain raw data)
         if (result.patternFingerprint() != null) {
@@ -312,12 +315,12 @@ class ReputationAbuseServicePropertyTest {
 
         // Lower the reputation of one requester
         for (int i = 0; i < 10; i++) {
-            getService().recordDisputeOutcome(lowRepRequester, DisputeOutcome.REQUESTER_LOST);
+            service.recordDisputeOutcome(lowRepRequester, DisputeOutcome.REQUESTER_LOST);
         }
 
         // Increase reputation of another
         for (int i = 0; i < 10; i++) {
-            getService().recordDisputeOutcome(highRepRequester, DisputeOutcome.REQUESTER_WON);
+            service.recordDisputeOutcome(highRepRequester, DisputeOutcome.REQUESTER_WON);
         }
 
         // Count how many requests each can make
@@ -325,8 +328,8 @@ class ReputationAbuseServicePropertyTest {
         int highRepAllowed = 0;
 
         for (int i = 0; i < 30; i++) {
-            if (getService().checkRateLimit(lowRepRequester).allowed()) lowRepAllowed++;
-            if (getService().checkRateLimit(highRepRequester).allowed()) highRepAllowed++;
+            if (service.checkRateLimit(lowRepRequester).allowed()) lowRepAllowed++;
+            if (service.checkRateLimit(highRepRequester).allowed()) highRepAllowed++;
         }
 
         // High reputation should allow more requests
@@ -340,17 +343,17 @@ class ReputationAbuseServicePropertyTest {
         UUID requester1 = UUID.randomUUID();
         // Start at 50 (NEUTRAL), add 35 to get to 85 (EXCELLENT)
         for (int i = 0; i < 18; i++) {
-            getService().recordDisputeOutcome(requester1, DisputeOutcome.REQUESTER_WON);
+            service.recordDisputeOutcome(requester1, DisputeOutcome.REQUESTER_WON);
         }
-        assertThat(getService().getOrCreateReputation(requester1).getTier())
+        assertThat(service.getOrCreateReputation(requester1).getTier())
                 .isEqualTo(ReputationTier.EXCELLENT);
 
         UUID requester2 = UUID.randomUUID();
         // Start at 50 (NEUTRAL), subtract 35 to get to 15 (RESTRICTED)
         for (int i = 0; i < 7; i++) {
-            getService().recordDisputeOutcome(requester2, DisputeOutcome.REQUESTER_LOST);
+            service.recordDisputeOutcome(requester2, DisputeOutcome.REQUESTER_LOST);
         }
-        assertThat(getService().getOrCreateReputation(requester2).getTier())
+        assertThat(service.getOrCreateReputation(requester2).getTier())
                 .isEqualTo(ReputationTier.RESTRICTED);
     }
 
@@ -361,11 +364,11 @@ class ReputationAbuseServicePropertyTest {
     @Label("Targeting attempts severely impact reputation")
     void targetingAttemptsSeverelyImpactReputation() {
         UUID requesterId = UUID.randomUUID();
-        BigDecimal initialScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal initialScore = service.getOrCreateReputation(requesterId).score();
 
-        getService().recordTargetingAttempt(requesterId, "Attempted to target specific individual");
+        service.recordTargetingAttempt(requesterId, "Attempted to target specific individual");
 
-        BigDecimal finalScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal finalScore = service.getOrCreateReputation(requesterId).score();
         assertThat(finalScore).isLessThan(initialScore.subtract(BigDecimal.valueOf(5)));
     }
 
@@ -373,11 +376,11 @@ class ReputationAbuseServicePropertyTest {
     @Label("Successful requests slightly improve reputation")
     void successfulRequestsSlightlyImproveReputation() {
         UUID requesterId = UUID.randomUUID();
-        BigDecimal initialScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal initialScore = service.getOrCreateReputation(requesterId).score();
 
-        getService().recordSuccessfulRequest(requesterId);
+        service.recordSuccessfulRequest(requesterId);
 
-        BigDecimal finalScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal finalScore = service.getOrCreateReputation(requesterId).score();
         assertThat(finalScore).isGreaterThan(initialScore);
     }
 
@@ -385,47 +388,11 @@ class ReputationAbuseServicePropertyTest {
     @Label("Settled disputes do not affect reputation")
     void settledDisputesDoNotAffectReputation() {
         UUID requesterId = UUID.randomUUID();
-        BigDecimal initialScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal initialScore = service.getOrCreateReputation(requesterId).score();
 
-        getService().recordDisputeOutcome(requesterId, DisputeOutcome.SETTLED);
+        service.recordDisputeOutcome(requesterId, DisputeOutcome.SETTLED);
 
-        BigDecimal finalScore = getService().getOrCreateReputation(requesterId).score();
+        BigDecimal finalScore = service.getOrCreateReputation(requesterId).score();
         assertThat(finalScore).isEqualTo(initialScore);
-    }
-
-    // ==================== Test Doubles ====================
-
-    /**
-     * Test implementation of AuditService for unit testing.
-     */
-    static class TestAuditService extends AuditService {
-        private final List<AuditReceipt> receipts = new ArrayList<>();
-
-        TestAuditService() {
-            super(null);
-        }
-
-        @Override
-        public AuditReceipt appendReceipt(
-                AuditReceipt.EventType eventType,
-                UUID actorId,
-                AuditReceipt.ActorType actorType,
-                UUID resourceId,
-                String resourceType,
-                String detailsHash) {
-            AuditReceipt receipt = AuditReceipt.create(
-                    eventType, actorId, actorType, resourceId, resourceType, detailsHash, "TEST"
-            );
-            receipts.add(receipt);
-            return receipt;
-        }
-
-        boolean hasReceiptOfType(AuditReceipt.EventType eventType) {
-            return receipts.stream().anyMatch(r -> r.getEventType() == eventType);
-        }
-
-        void clearReceipts() {
-            receipts.clear();
-        }
     }
 }

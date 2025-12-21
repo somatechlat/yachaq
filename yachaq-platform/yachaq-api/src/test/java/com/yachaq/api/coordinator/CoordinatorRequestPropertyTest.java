@@ -1,6 +1,8 @@
 package com.yachaq.api.coordinator;
 
+import com.yachaq.api.YachaqApiApplication;
 import com.yachaq.api.audit.AuditService;
+import com.yachaq.api.config.TestcontainersConfiguration;
 import com.yachaq.api.coordinator.CoordinatorRequestService.*;
 import com.yachaq.core.domain.AuditReceipt;
 import com.yachaq.core.domain.Request;
@@ -9,15 +11,19 @@ import com.yachaq.core.repository.RequestRepository;
 import net.jqwik.api.*;
 import net.jqwik.api.Assume;
 import net.jqwik.api.constraints.*;
+import net.jqwik.spring.JqwikSpringSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -25,50 +31,35 @@ import static org.assertj.core.api.Assertions.*;
  * Property-based tests for Coordinator Request Management.
  * Requirement 321: Coordinator Request Management.
  * Property 62: Coordinator No Raw Ingestion.
+ * 
+ * VIBE CODING RULES COMPLIANCE:
+ * - Rule #1: NO MOCKS - Uses real PostgreSQL via Docker
+ * - Rule #4: REAL IMPLEMENTATIONS - All services are real Spring beans
+ * - Rule #7: REAL DATA & SERVERS - Tests against real Docker PostgreSQL
  */
+@JqwikSpringSupport
+@SpringBootTest(classes = YachaqApiApplication.class)
+@Import(TestcontainersConfiguration.class)
+@ActiveProfiles("test")
+@Transactional
 class CoordinatorRequestPropertyTest {
 
-    private TestRequestRepository requestRepository;
-    private TestAuditService auditService;
-    private PolicyStampSigner policyStampSigner;
+    @Autowired
+    private RequestRepository requestRepository;
+
+    @Autowired
+    private AuditService auditService;
+
+    @Autowired
+    private AuditReceiptRepository auditReceiptRepository;
+
+    @Autowired
     private CoordinatorRequestService service;
 
     @BeforeEach
     void setUp() {
-        initializeService();
-    }
-
-    private void initializeService() {
-        if (service == null) {
-            requestRepository = new TestRequestRepository();
-            auditService = new TestAuditService();
-            // Use byte[] constructor for testing
-            byte[] testKey = new byte[32];
-            new java.security.SecureRandom().nextBytes(testKey);
-            policyStampSigner = new DefaultPolicyStampSigner(testKey);
-            service = new CoordinatorRequestService(requestRepository, auditService, policyStampSigner);
-        }
-    }
-
-    private CoordinatorRequestService getService() {
-        if (service == null) {
-            initializeService();
-        }
-        return service;
-    }
-
-    private TestAuditService getAuditService() {
-        if (auditService == null) {
-            initializeService();
-        }
-        return auditService;
-    }
-
-    private TestRequestRepository getRequestRepository() {
-        if (requestRepository == null) {
-            initializeService();
-        }
-        return requestRepository;
+        // Clean up audit receipts for each test
+        auditReceiptRepository.deleteAll();
     }
 
     // ==================== Property 62: Coordinator No Raw Ingestion ====================
@@ -91,7 +82,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(scope, Map.of(), Map.of());
 
-        RawDataCheckResult result = getService().checkForRawData(request);
+        RawDataCheckResult result = service.checkForRawData(request);
 
         assertThat(result.containsRawData())
                 .as("Request with forbidden field '%s' should be detected as containing raw data", forbiddenField)
@@ -114,7 +105,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(scope, Map.of(), Map.of());
 
-        RawDataCheckResult result = getService().checkForRawData(request);
+        RawDataCheckResult result = service.checkForRawData(request);
 
         assertThat(result.containsRawData())
                 .as("Request with GPS coordinates should be detected as containing raw data")
@@ -132,7 +123,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(Map.of(), Map.of(), metadata);
 
-        RawDataCheckResult result = getService().checkForRawData(request);
+        RawDataCheckResult result = service.checkForRawData(request);
 
         assertThat(result.containsRawData())
                 .as("Request with large base64 payload should be detected as containing raw data")
@@ -155,7 +146,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(scope, Map.of(), Map.of());
 
-        RawDataCheckResult result = getService().checkForRawData(request);
+        RawDataCheckResult result = service.checkForRawData(request);
 
         assertThat(result.containsRawData())
                 .as("Request with SSN pattern should be detected as containing raw data")
@@ -168,22 +159,21 @@ class CoordinatorRequestPropertyTest {
     @Label("Property 62: Raw data attempts are logged")
     void rawDataAttemptsAreLogged(@ForAll("forbiddenFieldNames") String forbiddenField) {
 
-        getAuditService().clearReceipts();
-        
         Map<String, Object> scope = new HashMap<>();
         scope.put(forbiddenField, "some_value");
 
         CoordinatorRequest request = createValidRequest(scope, Map.of(), Map.of());
 
-        StorageResult result = getService().storeRequest(request);
+        StorageResult result = service.storeRequest(request);
 
         assertThat(result.success()).isFalse();
         assertThat(result.status()).isEqualTo(StorageStatus.RAW_DATA_REJECTED);
 
-        // Verify audit log was called for unauthorized access attempt
-        assertThat(getAuditService().hasReceiptOfType(AuditReceipt.EventType.UNAUTHORIZED_FIELD_ACCESS_ATTEMPT))
+        // Verify audit log was created in real database
+        List<AuditReceipt> receipts = auditReceiptRepository.findAll();
+        assertThat(receipts)
                 .as("Raw data attempt should be logged as UNAUTHORIZED_FIELD_ACCESS_ATTEMPT")
-                .isTrue();
+                .anyMatch(r -> r.getEventType() == AuditReceipt.EventType.UNAUTHORIZED_FIELD_ACCESS_ATTEMPT);
     }
 
     // ==================== Schema Validation Tests ====================
@@ -214,7 +204,7 @@ class CoordinatorRequestPropertyTest {
                 Map.of()
         );
 
-        SchemaValidationResult result = getService().validateSchema(request);
+        SchemaValidationResult result = service.validateSchema(request);
 
         assertThat(result.valid())
                 .as("Valid request should pass schema validation, violations: %s", result.violations())
@@ -232,7 +222,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(Map.of("data_category", "fitness"), criteria, Map.of());
 
-        SchemaValidationResult result = getService().validateSchema(request);
+        SchemaValidationResult result = service.validateSchema(request);
 
         assertThat(result.valid()).isFalse();
         assertThat(result.violations())
@@ -248,7 +238,7 @@ class CoordinatorRequestPropertyTest {
                 Instant.now(), Instant.now().plus(1, ChronoUnit.DAYS),
                 CoordinatorRequest.UnitType.DATA_ACCESS, BigDecimal.ONE, 10, Map.of()
         );
-        assertThat(getService().validateSchema(request1).violations()).contains("MISSING_REQUESTER_ID");
+        assertThat(service.validateSchema(request1).violations()).contains("MISSING_REQUESTER_ID");
 
         // Missing purpose
         CoordinatorRequest request2 = new CoordinatorRequest(
@@ -256,7 +246,7 @@ class CoordinatorRequestPropertyTest {
                 Instant.now(), Instant.now().plus(1, ChronoUnit.DAYS),
                 CoordinatorRequest.UnitType.DATA_ACCESS, BigDecimal.ONE, 10, Map.of()
         );
-        assertThat(getService().validateSchema(request2).violations()).contains("MISSING_PURPOSE");
+        assertThat(service.validateSchema(request2).violations()).contains("MISSING_PURPOSE");
 
         // Invalid duration (start after end)
         CoordinatorRequest request3 = new CoordinatorRequest(
@@ -264,7 +254,7 @@ class CoordinatorRequestPropertyTest {
                 Instant.now().plus(10, ChronoUnit.DAYS), Instant.now(),
                 CoordinatorRequest.UnitType.DATA_ACCESS, BigDecimal.ONE, 10, Map.of()
         );
-        assertThat(getService().validateSchema(request3).violations()).contains("INVALID_DURATION_RANGE");
+        assertThat(service.validateSchema(request3).violations()).contains("INVALID_DURATION_RANGE");
     }
 
     // ==================== Storage Tests ====================
@@ -279,8 +269,6 @@ class CoordinatorRequestPropertyTest {
         // Skip blank purposes (whitespace only)
         Assume.that(!purpose.isBlank());
 
-        getAuditService().clearReceipts();
-        
         Map<String, Object> scope = Map.of("data_category", "fitness");
         Map<String, Object> criteria = Map.of("account_type", "DS-IND");
 
@@ -297,7 +285,7 @@ class CoordinatorRequestPropertyTest {
                 Map.of()
         );
 
-        StorageResult result = getService().storeRequest(request);
+        StorageResult result = service.storeRequest(request);
 
         assertThat(result.success())
                 .as("Storage should succeed, violations: %s, status: %s", result.violations(), result.status())
@@ -305,13 +293,14 @@ class CoordinatorRequestPropertyTest {
         assertThat(result.status()).isEqualTo(StorageStatus.STORED);
         assertThat(result.violations()).isEmpty();
 
-        // Verify request was saved
-        assertThat(getRequestRepository().getSavedCount()).isGreaterThan(0);
+        // Verify request was saved in real database
+        assertThat(requestRepository.count()).isGreaterThan(0);
 
-        // Verify audit receipt was created
-        assertThat(getAuditService().hasReceiptOfType(AuditReceipt.EventType.REQUEST_CREATED))
+        // Verify audit receipt was created in real database
+        List<AuditReceipt> receipts = auditReceiptRepository.findAll();
+        assertThat(receipts)
                 .as("Storage should create REQUEST_CREATED audit receipt")
-                .isTrue();
+                .anyMatch(r -> r.getEventType() == AuditReceipt.EventType.REQUEST_CREATED);
     }
 
     @Property(tries = 50)
@@ -340,7 +329,7 @@ class CoordinatorRequestPropertyTest {
         );
 
         // This should be rejected due to raw data
-        StorageResult result = getService().storeRequest(request);
+        StorageResult result = service.storeRequest(request);
 
         assertThat(result.success()).isFalse();
         assertThat(result.status()).isEqualTo(StorageStatus.RAW_DATA_REJECTED);
@@ -351,9 +340,8 @@ class CoordinatorRequestPropertyTest {
     @Test
     @Label("Policy stamp: Approved requests get valid policy stamp")
     void approvedRequestsGetValidPolicyStamp() {
-        UUID requestId = UUID.randomUUID();
-        Request mockRequest = createMockRequest(requestId, Request.RequestStatus.SCREENING);
-        getRequestRepository().addRequest(mockRequest);
+        UUID requesterId = UUID.randomUUID();
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING);
 
         PolicyApproval approval = new PolicyApproval(
                 PolicyDecision.APPROVED,
@@ -361,27 +349,26 @@ class CoordinatorRequestPropertyTest {
                 List.of()
         );
 
-        PolicyStampResult result = getService().attachPolicyStamp(requestId, approval);
+        PolicyStampResult result = service.attachPolicyStamp(request.getId(), approval);
 
         assertThat(result.success()).isTrue();
         assertThat(result.stamp()).isNotNull();
-        assertThat(result.stamp().requestId()).isEqualTo(requestId);
+        assertThat(result.stamp().requestId()).isEqualTo(request.getId());
         assertThat(result.stamp().decision()).isEqualTo(PolicyDecision.APPROVED);
         assertThat(result.stamp().safeguards()).containsExactlyInAnyOrder("CLEAN_ROOM_ONLY", "AGGREGATE_ONLY");
         assertThat(result.stamp().signature()).isNotBlank();
         assertThat(result.stamp().stampHash()).isNotBlank();
 
-        // Verify request was activated
-        assertThat(getRequestRepository().getRequest(requestId).getStatus())
-                .isEqualTo(Request.RequestStatus.ACTIVE);
+        // Verify request was activated in real database
+        Request updatedRequest = requestRepository.findById(request.getId()).orElseThrow();
+        assertThat(updatedRequest.getStatus()).isEqualTo(Request.RequestStatus.ACTIVE);
     }
 
     @Test
     @Label("Policy stamp: Rejected requests get rejection stamp")
     void rejectedRequestsGetRejectionStamp() {
-        UUID requestId = UUID.randomUUID();
-        Request mockRequest = createMockRequest(requestId, Request.RequestStatus.SCREENING);
-        getRequestRepository().addRequest(mockRequest);
+        UUID requesterId = UUID.randomUUID();
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING);
 
         PolicyApproval approval = new PolicyApproval(
                 PolicyDecision.REJECTED,
@@ -389,26 +376,25 @@ class CoordinatorRequestPropertyTest {
                 List.of("COHORT_TOO_SMALL", "HIGH_RISK")
         );
 
-        PolicyStampResult result = getService().attachPolicyStamp(requestId, approval);
+        PolicyStampResult result = service.attachPolicyStamp(request.getId(), approval);
 
         assertThat(result.success()).isTrue();
         assertThat(result.stamp().decision()).isEqualTo(PolicyDecision.REJECTED);
 
-        // Verify request was rejected
-        assertThat(getRequestRepository().getRequest(requestId).getStatus())
-                .isEqualTo(Request.RequestStatus.REJECTED);
+        // Verify request was rejected in real database
+        Request updatedRequest = requestRepository.findById(request.getId()).orElseThrow();
+        assertThat(updatedRequest.getStatus()).isEqualTo(Request.RequestStatus.REJECTED);
     }
 
     @Test
     @Label("Policy stamp: Non-screening requests cannot get stamp")
     void nonScreeningRequestsCannotGetStamp() {
-        UUID requestId = UUID.randomUUID();
-        Request mockRequest = createMockRequest(requestId, Request.RequestStatus.ACTIVE);
-        getRequestRepository().addRequest(mockRequest);
+        UUID requesterId = UUID.randomUUID();
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.ACTIVE);
 
         PolicyApproval approval = new PolicyApproval(PolicyDecision.APPROVED, Set.of(), List.of());
 
-        PolicyStampResult result = getService().attachPolicyStamp(requestId, approval);
+        PolicyStampResult result = service.attachPolicyStamp(request.getId(), approval);
 
         assertThat(result.success()).isFalse();
         assertThat(result.error()).contains("SCREENING");
@@ -419,30 +405,28 @@ class CoordinatorRequestPropertyTest {
     @Test
     @Label("Publication: Active requests can be published via broadcast")
     void activeRequestsCanBePublishedViaBroadcast() {
-        UUID requestId = UUID.randomUUID();
-        Request mockRequest = createMockRequest(requestId, Request.RequestStatus.ACTIVE);
-        getRequestRepository().addRequest(mockRequest);
-        getAuditService().clearReceipts();
+        UUID requesterId = UUID.randomUUID();
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.ACTIVE);
 
-        PublicationResult result = getService().publishRequest(requestId, PublicationMode.BROADCAST);
+        PublicationResult result = service.publishRequest(request.getId(), PublicationMode.BROADCAST);
 
         assertThat(result.success()).isTrue();
         assertThat(result.nodesReached()).isGreaterThan(0);
 
-        // Verify audit receipt was created
-        assertThat(getAuditService().hasReceiptOfType(AuditReceipt.EventType.REQUEST_MATCHED))
+        // Verify audit receipt was created in real database
+        List<AuditReceipt> receipts = auditReceiptRepository.findAll();
+        assertThat(receipts)
                 .as("Publication should create audit receipt")
-                .isTrue();
+                .anyMatch(r -> r.getEventType() == AuditReceipt.EventType.REQUEST_MATCHED);
     }
 
     @Test
     @Label("Publication: Non-active requests cannot be published")
     void nonActiveRequestsCannotBePublished() {
-        UUID requestId = UUID.randomUUID();
-        Request mockRequest = createMockRequest(requestId, Request.RequestStatus.DRAFT);
-        getRequestRepository().addRequest(mockRequest);
+        UUID requesterId = UUID.randomUUID();
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.DRAFT);
 
-        PublicationResult result = getService().publishRequest(requestId, PublicationMode.BROADCAST);
+        PublicationResult result = service.publishRequest(request.getId(), PublicationMode.BROADCAST);
 
         assertThat(result.success()).isFalse();
         assertThat(result.error()).contains("ACTIVE");
@@ -461,7 +445,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(scope, Map.of(), Map.of());
 
-        RawDataCheckResult result = getService().checkForRawData(request);
+        RawDataCheckResult result = service.checkForRawData(request);
 
         assertThat(result.containsRawData()).isTrue();
         assertThat(result.violations())
@@ -479,7 +463,7 @@ class CoordinatorRequestPropertyTest {
 
         CoordinatorRequest request = createValidRequest(Map.of(), Map.of(), metadata);
 
-        RawDataCheckResult result = getService().checkForRawData(request);
+        RawDataCheckResult result = service.checkForRawData(request);
 
         assertThat(result.containsRawData()).isTrue();
         assertThat(result.violations())
@@ -545,167 +529,43 @@ class CoordinatorRequestPropertyTest {
         );
     }
 
-    private Request createMockRequest(UUID id, Request.RequestStatus status) {
-        return new TestRequest(id, status);
-    }
-
-    // ==================== Test Doubles ====================
-
     /**
-     * Test implementation of RequestRepository for unit testing.
+     * Creates and saves a real Request entity to the database.
+     * Uses real JPA repository operations.
+     * 
+     * Request.create() signature:
+     * (requesterId, purpose, scope, eligibilityCriteria, durationStart, durationEnd,
+     *  unitType, unitPrice, maxParticipants, budget)
      */
-    static class TestRequestRepository implements RequestRepository {
-        private final Map<UUID, Request> requests = new ConcurrentHashMap<>();
-        private int savedCount = 0;
-
-        @Override
-        public <S extends Request> S save(S entity) {
-            savedCount++;
-            // For new entities without ID, generate one using reflection
-            if (entity.getId() == null) {
-                try {
-                    java.lang.reflect.Field idField = Request.class.getDeclaredField("id");
-                    idField.setAccessible(true);
-                    idField.set(entity, UUID.randomUUID());
-                } catch (Exception e) {
-                    // Ignore - entity may already have ID
-                }
-            }
-            requests.put(entity.getId(), entity);
-            return entity;
+    private Request createAndSaveRequest(UUID requesterId, Request.RequestStatus targetStatus) {
+        Request request = Request.create(
+                requesterId,
+                "Test purpose",
+                Map.of("category", "fitness"),
+                Map.of(),
+                Instant.now(),
+                Instant.now().plus(30, ChronoUnit.DAYS),
+                Request.UnitType.DATA_ACCESS,
+                BigDecimal.TEN,
+                100,
+                BigDecimal.valueOf(1000)
+        );
+        // Save first to get ID, then transition to target status
+        Request saved = requestRepository.save(request);
+        
+        // Transition through states to reach target status
+        if (targetStatus == Request.RequestStatus.SCREENING || 
+            targetStatus == Request.RequestStatus.ACTIVE ||
+            targetStatus == Request.RequestStatus.REJECTED) {
+            saved.submitForScreening();
         }
-
-        @Override
-        public Optional<Request> findById(UUID id) {
-            return Optional.ofNullable(requests.get(id));
+        if (targetStatus == Request.RequestStatus.ACTIVE) {
+            saved.activate();
         }
-
-        void addRequest(Request request) {
-            requests.put(request.getId(), request);
+        if (targetStatus == Request.RequestStatus.REJECTED) {
+            saved.reject();
         }
-
-        Request getRequest(UUID id) {
-            return requests.get(id);
-        }
-
-        int getSavedCount() {
-            return savedCount;
-        }
-
-        // Unused methods - minimal implementation
-        @Override public <S extends Request> List<S> saveAll(Iterable<S> entities) { return List.of(); }
-        @Override public boolean existsById(UUID id) { return requests.containsKey(id); }
-        @Override public List<Request> findAll() { return new ArrayList<>(requests.values()); }
-        @Override public List<Request> findAllById(Iterable<UUID> ids) { return List.of(); }
-        @Override public long count() { return requests.size(); }
-        @Override public void deleteById(UUID id) { requests.remove(id); }
-        @Override public void delete(Request entity) { requests.remove(entity.getId()); }
-        @Override public void deleteAllById(Iterable<? extends UUID> ids) {}
-        @Override public void deleteAll(Iterable<? extends Request> entities) {}
-        @Override public void deleteAll() { requests.clear(); }
-        @Override public void flush() {}
-        @Override public <S extends Request> S saveAndFlush(S entity) { return save(entity); }
-        @Override public <S extends Request> List<S> saveAllAndFlush(Iterable<S> entities) { return List.of(); }
-        @Override public void deleteAllInBatch(Iterable<Request> entities) {}
-        @Override public void deleteAllByIdInBatch(Iterable<UUID> ids) {}
-        @Override public void deleteAllInBatch() {}
-        @Override public Request getOne(UUID id) { return requests.get(id); }
-        @Override public Request getById(UUID id) { return requests.get(id); }
-        @Override public Request getReferenceById(UUID id) { return requests.get(id); }
-        @Override public <S extends Request> Optional<S> findOne(org.springframework.data.domain.Example<S> example) { return Optional.empty(); }
-        @Override public <S extends Request> List<S> findAll(org.springframework.data.domain.Example<S> example) { return List.of(); }
-        @Override public <S extends Request> List<S> findAll(org.springframework.data.domain.Example<S> example, org.springframework.data.domain.Sort sort) { return List.of(); }
-        @Override public <S extends Request> org.springframework.data.domain.Page<S> findAll(org.springframework.data.domain.Example<S> example, org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public <S extends Request> long count(org.springframework.data.domain.Example<S> example) { return 0; }
-        @Override public <S extends Request> boolean exists(org.springframework.data.domain.Example<S> example) { return false; }
-        @Override public <S extends Request, R> R findBy(org.springframework.data.domain.Example<S> example, java.util.function.Function<org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery<S>, R> queryFunction) { return null; }
-        @Override public List<Request> findAll(org.springframework.data.domain.Sort sort) { return List.of(); }
-        @Override public org.springframework.data.domain.Page<Request> findAll(org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public org.springframework.data.domain.Page<Request> findByRequesterIdOrderByCreatedAtDesc(UUID requesterId, org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public org.springframework.data.domain.Page<Request> findByStatusOrderByCreatedAtDesc(Request.RequestStatus status, org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public List<Request> findActiveRequestsInRange(Instant now) { return List.of(); }
-    }
-
-    /**
-     * Test implementation of AuditService for unit testing.
-     */
-    static class TestAuditService extends AuditService {
-        private final List<AuditReceipt> receipts = new ArrayList<>();
-
-        TestAuditService() {
-            super(null); // We override all methods
-        }
-
-        @Override
-        public AuditReceipt appendReceipt(
-                AuditReceipt.EventType eventType,
-                UUID actorId,
-                AuditReceipt.ActorType actorType,
-                UUID resourceId,
-                String resourceType,
-                String detailsHash) {
-            AuditReceipt receipt = AuditReceipt.create(
-                    eventType, actorId, actorType, resourceId, resourceType, detailsHash, "TEST"
-            );
-            receipts.add(receipt);
-            return receipt;
-        }
-
-        boolean hasReceiptOfType(AuditReceipt.EventType eventType) {
-            return receipts.stream().anyMatch(r -> r.getEventType() == eventType);
-        }
-
-        void clearReceipts() {
-            receipts.clear();
-        }
-    }
-
-    /**
-     * Test implementation of Request for unit testing.
-     */
-    static class TestRequest extends Request {
-        private final UUID id;
-        private Request.RequestStatus status;
-
-        TestRequest(UUID id, Request.RequestStatus status) {
-            this.id = id;
-            this.status = status;
-        }
-
-        @Override
-        public UUID getId() { return id; }
-
-        @Override
-        public Request.RequestStatus getStatus() { return status; }
-
-        @Override
-        public void activate() { this.status = Request.RequestStatus.ACTIVE; }
-
-        @Override
-        public void reject() { this.status = Request.RequestStatus.REJECTED; }
-
-        @Override
-        public UUID getRequesterId() { return UUID.randomUUID(); }
-
-        @Override
-        public String getPurpose() { return "Test purpose"; }
-
-        @Override
-        public Map<String, Object> getScope() { return Map.of("category", "fitness"); }
-
-        @Override
-        public Map<String, Object> getEligibilityCriteria() { return Map.of(); }
-
-        @Override
-        public BigDecimal getUnitPrice() { return BigDecimal.TEN; }
-
-        @Override
-        public Integer getMaxParticipants() { return 100; }
-
-        @Override
-        public Instant getDurationStart() { return Instant.now(); }
-
-        @Override
-        public Instant getDurationEnd() { return Instant.now().plus(30, ChronoUnit.DAYS); }
+        
+        return requestRepository.save(saved);
     }
 }

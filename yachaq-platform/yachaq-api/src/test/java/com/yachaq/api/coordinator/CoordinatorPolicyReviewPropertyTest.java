@@ -1,21 +1,29 @@
 package com.yachaq.api.coordinator;
 
+import com.yachaq.api.YachaqApiApplication;
 import com.yachaq.api.audit.AuditService;
+import com.yachaq.api.config.TestcontainersConfiguration;
 import com.yachaq.api.coordinator.CoordinatorPolicyReviewService.*;
 import com.yachaq.api.coordinator.CoordinatorRequestService.PolicyDecision;
 import com.yachaq.core.domain.AuditReceipt;
 import com.yachaq.core.domain.Request;
+import com.yachaq.core.repository.AuditReceiptRepository;
 import com.yachaq.core.repository.RequestRepository;
 import net.jqwik.api.*;
 import net.jqwik.api.constraints.*;
+import net.jqwik.spring.JqwikSpringSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -25,38 +33,36 @@ import static org.assertj.core.api.Assertions.*;
  * 
  * Tests ODX-terms-only criteria enforcement, high-risk request blocking/downscoping,
  * policy stamp signing, and reason codes/remediation hints.
+ * 
+ * VIBE CODING RULES COMPLIANCE:
+ * - Rule #1: NO MOCKS - Uses real PostgreSQL via Docker
+ * - Rule #4: REAL IMPLEMENTATIONS - All services are real Spring beans
+ * - Rule #7: REAL DATA & SERVERS - Tests against real Docker PostgreSQL
  */
+@JqwikSpringSupport
+@SpringBootTest(classes = YachaqApiApplication.class)
+@Import(TestcontainersConfiguration.class)
+@ActiveProfiles("test")
+@Transactional
 class CoordinatorPolicyReviewPropertyTest {
 
-    private TestRequestRepository requestRepository;
-    private TestAuditService auditService;
+    @Autowired
+    private RequestRepository requestRepository;
+
+    @Autowired
+    private AuditService auditService;
+
+    @Autowired
+    private AuditReceiptRepository auditReceiptRepository;
+
+    @Autowired
     private CoordinatorPolicyReviewService service;
 
     @BeforeEach
     void setUp() {
-        initializeService();
-    }
-
-    private void initializeService() {
-        if (service == null) {
-            requestRepository = new TestRequestRepository();
-            auditService = new TestAuditService();
-            service = new CoordinatorPolicyReviewService(requestRepository, auditService, "");
-        }
-    }
-
-    private CoordinatorPolicyReviewService getService() {
-        if (service == null) {
-            initializeService();
-        }
-        return service;
-    }
-
-    private TestRequestRepository getRequestRepository() {
-        if (requestRepository == null) {
-            initializeService();
-        }
-        return requestRepository;
+        // Clean up for each test
+        auditReceiptRepository.deleteAll();
+        requestRepository.deleteAll();
     }
 
     // ==================== ODX-Terms-Only Criteria Tests (Requirement 322.1) ====================
@@ -64,7 +70,7 @@ class CoordinatorPolicyReviewPropertyTest {
     @Property(tries = 100)
     @Label("ODX Validation: Valid ODX criteria pass validation")
     void validODXCriteriaPassValidation(@ForAll("validODXCriteria") Map<String, Object> criteria) {
-        ODXValidationResult result = getService().validateODXCriteria(criteria);
+        ODXValidationResult result = service.validateODXCriteria(criteria);
         
         assertThat(result.valid())
                 .as("Valid ODX criteria should pass validation")
@@ -78,7 +84,7 @@ class CoordinatorPolicyReviewPropertyTest {
         Map<String, Object> criteria = new HashMap<>();
         criteria.put(invalidKey, "some_value");
         
-        ODXValidationResult result = getService().validateODXCriteria(criteria);
+        ODXValidationResult result = service.validateODXCriteria(criteria);
         
         assertThat(result.valid())
                 .as("Non-ODX criteria '%s' should be rejected", invalidKey)
@@ -92,10 +98,10 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("ODX Validation: Empty criteria pass validation")
     void emptyCriteriaPassValidation() {
-        ODXValidationResult result = getService().validateODXCriteria(Map.of());
+        ODXValidationResult result = service.validateODXCriteria(Map.of());
         assertThat(result.valid()).isTrue();
         
-        ODXValidationResult nullResult = getService().validateODXCriteria(null);
+        ODXValidationResult nullResult = service.validateODXCriteria(null);
         assertThat(nullResult.valid()).isTrue();
     }
 
@@ -104,15 +110,15 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("High-Risk: Health + Location combination triggers downscope")
     void healthLocationCombinationTriggersDownscope() {
-        UUID requestId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
         Map<String, Object> scope = Map.of(
                 "domain.health", "fitness_data",
                 "domain.location", "movement_patterns"
         );
-        Request request = createMockRequest(requestId, Request.RequestStatus.SCREENING, scope, Map.of());
-        getRequestRepository().addRequest(request);
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING, 
+                "Test purpose", scope, Map.of());
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.requiredSafeguards())
                 .as("Health + Location should require CLEAN_ROOM_ONLY safeguard")
@@ -124,15 +130,15 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("High-Risk: Finance + Location combination triggers downscope")
     void financeLocationCombinationTriggersDownscope() {
-        UUID requestId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
         Map<String, Object> scope = Map.of(
                 "domain.finance", "spending_patterns",
                 "domain.location", "store_visits"
         );
-        Request request = createMockRequest(requestId, Request.RequestStatus.SCREENING, scope, Map.of());
-        getRequestRepository().addRequest(request);
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING,
+                "Test purpose", scope, Map.of());
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.requiredSafeguards())
                 .as("Finance + Location should require safeguards")
@@ -142,17 +148,16 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("High-Risk: Minors involvement triggers manual review")
     void minorsInvolvementTriggersManualReview() {
-        UUID requestId = UUID.randomUUID();
-        Request request = createMockRequestWithPurpose(
-                requestId, 
+        UUID requesterId = UUID.randomUUID();
+        Request request = createAndSaveRequest(
+                requesterId, 
                 Request.RequestStatus.SCREENING,
                 "Research on children's fitness habits",
                 Map.of("domain.fitness", "activity_data"),
                 Map.of()
         );
-        getRequestRepository().addRequest(request);
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.decision())
                 .as("Minors involvement should trigger MANUAL_REVIEW")
@@ -172,7 +177,7 @@ class CoordinatorPolicyReviewPropertyTest {
         Set<String> safeguards = Set.of(safeguard, "DEFAULT_SAFEGUARD");
         List<String> reasonCodes = List.of("APPROVED");
         
-        SignedPolicyStamp stamp = getService().signPolicyStamp(
+        SignedPolicyStamp stamp = service.signPolicyStamp(
                 requestId, 
                 PolicyDecision.APPROVED, 
                 safeguards, 
@@ -186,7 +191,7 @@ class CoordinatorPolicyReviewPropertyTest {
         assertThat(stamp.stampHash()).isNotBlank();
         
         // Verify the stamp
-        boolean verified = getService().verifyPolicyStamp(stamp);
+        boolean verified = service.verifyPolicyStamp(stamp);
         assertThat(verified)
                 .as("Signed stamp should be verifiable")
                 .isTrue();
@@ -197,7 +202,7 @@ class CoordinatorPolicyReviewPropertyTest {
     void tamperedStampsFailVerification() {
         UUID requestId = UUID.randomUUID();
         
-        SignedPolicyStamp originalStamp = getService().signPolicyStamp(
+        SignedPolicyStamp originalStamp = service.signPolicyStamp(
                 requestId,
                 PolicyDecision.APPROVED,
                 Set.of("CLEAN_ROOM_ONLY"),
@@ -216,7 +221,7 @@ class CoordinatorPolicyReviewPropertyTest {
                 originalStamp.stampHash()
         );
         
-        boolean verified = getService().verifyPolicyStamp(tamperedStamp);
+        boolean verified = service.verifyPolicyStamp(tamperedStamp);
         assertThat(verified)
                 .as("Tampered stamp should fail verification")
                 .isFalse();
@@ -225,7 +230,7 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("Policy Stamp: Null stamp returns false")
     void nullStampReturnsFalse() {
-        boolean verified = getService().verifyPolicyStamp(null);
+        boolean verified = service.verifyPolicyStamp(null);
         assertThat(verified).isFalse();
     }
 
@@ -239,7 +244,7 @@ class CoordinatorPolicyReviewPropertyTest {
                 "private_field", "secret"
         );
         
-        ODXValidationResult result = getService().validateODXCriteria(criteria);
+        ODXValidationResult result = service.validateODXCriteria(criteria);
         
         assertThat(result.hints())
                 .as("Should provide remediation hints")
@@ -252,17 +257,17 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("Remediation: Too specific criteria provides hint")
     void tooSpecificCriteriaProvidesHint() {
-        UUID requestId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
         Map<String, Object> criteria = new HashMap<>();
         // Add more than MAX_CRITERIA_SPECIFICITY fields
         for (int i = 0; i < 10; i++) {
             criteria.put("domain.field" + i, "value" + i);
         }
         
-        Request request = createMockRequest(requestId, Request.RequestStatus.SCREENING, Map.of(), criteria);
-        getRequestRepository().addRequest(request);
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING,
+                "Test purpose", Map.of(), criteria);
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.reasonCodes())
                 .contains("CRITERIA_TOO_SPECIFIC");
@@ -275,12 +280,12 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("Safeguards: Health data always requires clean room")
     void healthDataRequiresCleanRoom() {
-        UUID requestId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
         Map<String, Object> scope = Map.of("domain.health", "medical_data");
-        Request request = createMockRequest(requestId, Request.RequestStatus.SCREENING, scope, Map.of());
-        getRequestRepository().addRequest(request);
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING,
+                "Test purpose", scope, Map.of());
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.requiredSafeguards())
                 .contains("CLEAN_ROOM_ONLY")
@@ -290,12 +295,12 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("Safeguards: Location data requires coarse geo")
     void locationDataRequiresCoarseGeo() {
-        UUID requestId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
         Map<String, Object> scope = Map.of("domain.location", "movement_data");
-        Request request = createMockRequest(requestId, Request.RequestStatus.SCREENING, scope, Map.of());
-        getRequestRepository().addRequest(request);
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING,
+                "Test purpose", scope, Map.of());
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.requiredSafeguards())
                 .contains("COARSE_GEO");
@@ -304,12 +309,12 @@ class CoordinatorPolicyReviewPropertyTest {
     @Test
     @Label("Safeguards: All requests get minimum safeguards")
     void allRequestsGetMinimumSafeguards() {
-        UUID requestId = UUID.randomUUID();
+        UUID requesterId = UUID.randomUUID();
         Map<String, Object> scope = Map.of("domain.entertainment", "viewing_habits");
-        Request request = createMockRequest(requestId, Request.RequestStatus.SCREENING, scope, Map.of());
-        getRequestRepository().addRequest(request);
+        Request request = createAndSaveRequest(requesterId, Request.RequestStatus.SCREENING,
+                "Test purpose", scope, Map.of());
         
-        PolicyReviewResult result = getService().reviewRequest(requestId);
+        PolicyReviewResult result = service.reviewRequest(request.getId());
         
         assertThat(result.requiredSafeguards())
                 .contains("K_ANONYMITY_50")
@@ -348,121 +353,45 @@ class CoordinatorPolicyReviewPropertyTest {
 
     // ==================== Helper Methods ====================
 
-    private Request createMockRequest(UUID id, Request.RequestStatus status,
-                                       Map<String, Object> scope, Map<String, Object> criteria) {
-        return new TestRequest(id, status, "Test purpose", scope, criteria);
-    }
-
-    private Request createMockRequestWithPurpose(UUID id, Request.RequestStatus status,
-                                                  String purpose, Map<String, Object> scope,
-                                                  Map<String, Object> criteria) {
-        return new TestRequest(id, status, purpose, scope, criteria);
-    }
-
-    // ==================== Test Doubles ====================
-
-    static class TestRequestRepository implements RequestRepository {
-        private final Map<UUID, Request> requests = new ConcurrentHashMap<>();
-
-        @Override
-        public <S extends Request> S save(S entity) {
-            requests.put(entity.getId(), entity);
-            return entity;
+    /**
+     * Creates and saves a real Request entity to the database.
+     * Uses real JPA repository operations.
+     * 
+     * Request.create() signature:
+     * (requesterId, purpose, scope, eligibilityCriteria, durationStart, durationEnd,
+     *  unitType, unitPrice, maxParticipants, budget)
+     */
+    private Request createAndSaveRequest(UUID requesterId, Request.RequestStatus targetStatus,
+                                          String purpose, Map<String, Object> scope,
+                                          Map<String, Object> criteria) {
+        Request request = Request.create(
+                requesterId,
+                purpose,
+                scope.isEmpty() ? Map.of("category", "fitness") : scope,
+                criteria,
+                Instant.now(),
+                Instant.now().plus(30, ChronoUnit.DAYS),
+                Request.UnitType.DATA_ACCESS,
+                BigDecimal.TEN,
+                100,
+                BigDecimal.valueOf(1000)
+        );
+        // Save first to get ID, then transition to target status
+        Request saved = requestRepository.save(request);
+        
+        // Transition through states to reach target status
+        if (targetStatus == Request.RequestStatus.SCREENING || 
+            targetStatus == Request.RequestStatus.ACTIVE ||
+            targetStatus == Request.RequestStatus.REJECTED) {
+            saved.submitForScreening();
         }
-
-        @Override
-        public Optional<Request> findById(UUID id) {
-            return Optional.ofNullable(requests.get(id));
+        if (targetStatus == Request.RequestStatus.ACTIVE) {
+            saved.activate();
         }
-
-        void addRequest(Request request) {
-            requests.put(request.getId(), request);
+        if (targetStatus == Request.RequestStatus.REJECTED) {
+            saved.reject();
         }
-
-        // Minimal implementation for unused methods
-        @Override public <S extends Request> List<S> saveAll(Iterable<S> entities) { return List.of(); }
-        @Override public boolean existsById(UUID id) { return requests.containsKey(id); }
-        @Override public List<Request> findAll() { return new ArrayList<>(requests.values()); }
-        @Override public List<Request> findAllById(Iterable<UUID> ids) { return List.of(); }
-        @Override public long count() { return requests.size(); }
-        @Override public void deleteById(UUID id) { requests.remove(id); }
-        @Override public void delete(Request entity) { requests.remove(entity.getId()); }
-        @Override public void deleteAllById(Iterable<? extends UUID> ids) {}
-        @Override public void deleteAll(Iterable<? extends Request> entities) {}
-        @Override public void deleteAll() { requests.clear(); }
-        @Override public void flush() {}
-        @Override public <S extends Request> S saveAndFlush(S entity) { return save(entity); }
-        @Override public <S extends Request> List<S> saveAllAndFlush(Iterable<S> entities) { return List.of(); }
-        @Override public void deleteAllInBatch(Iterable<Request> entities) {}
-        @Override public void deleteAllByIdInBatch(Iterable<UUID> ids) {}
-        @Override public void deleteAllInBatch() {}
-        @Override public Request getOne(UUID id) { return requests.get(id); }
-        @Override public Request getById(UUID id) { return requests.get(id); }
-        @Override public Request getReferenceById(UUID id) { return requests.get(id); }
-        @Override public <S extends Request> Optional<S> findOne(org.springframework.data.domain.Example<S> example) { return Optional.empty(); }
-        @Override public <S extends Request> List<S> findAll(org.springframework.data.domain.Example<S> example) { return List.of(); }
-        @Override public <S extends Request> List<S> findAll(org.springframework.data.domain.Example<S> example, org.springframework.data.domain.Sort sort) { return List.of(); }
-        @Override public <S extends Request> org.springframework.data.domain.Page<S> findAll(org.springframework.data.domain.Example<S> example, org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public <S extends Request> long count(org.springframework.data.domain.Example<S> example) { return 0; }
-        @Override public <S extends Request> boolean exists(org.springframework.data.domain.Example<S> example) { return false; }
-        @Override public <S extends Request, R> R findBy(org.springframework.data.domain.Example<S> example, java.util.function.Function<org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery<S>, R> queryFunction) { return null; }
-        @Override public List<Request> findAll(org.springframework.data.domain.Sort sort) { return List.of(); }
-        @Override public org.springframework.data.domain.Page<Request> findAll(org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public org.springframework.data.domain.Page<Request> findByRequesterIdOrderByCreatedAtDesc(UUID requesterId, org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public org.springframework.data.domain.Page<Request> findByStatusOrderByCreatedAtDesc(Request.RequestStatus status, org.springframework.data.domain.Pageable pageable) { return org.springframework.data.domain.Page.empty(); }
-        @Override public List<Request> findActiveRequestsInRange(Instant now) { return List.of(); }
-    }
-
-    static class TestAuditService extends AuditService {
-        private final List<AuditReceipt> receipts = new ArrayList<>();
-
-        TestAuditService() {
-            super(null);
-        }
-
-        @Override
-        public AuditReceipt appendReceipt(
-                AuditReceipt.EventType eventType,
-                UUID actorId,
-                AuditReceipt.ActorType actorType,
-                UUID resourceId,
-                String resourceType,
-                String detailsHash) {
-            AuditReceipt receipt = AuditReceipt.create(
-                    eventType, actorId, actorType, resourceId, resourceType, detailsHash, "TEST"
-            );
-            receipts.add(receipt);
-            return receipt;
-        }
-    }
-
-    static class TestRequest extends Request {
-        private final UUID id;
-        private Request.RequestStatus status;
-        private final String purpose;
-        private final Map<String, Object> scope;
-        private final Map<String, Object> criteria;
-
-        TestRequest(UUID id, Request.RequestStatus status, String purpose,
-                    Map<String, Object> scope, Map<String, Object> criteria) {
-            this.id = id;
-            this.status = status;
-            this.purpose = purpose;
-            this.scope = scope;
-            this.criteria = criteria;
-        }
-
-        @Override public UUID getId() { return id; }
-        @Override public Request.RequestStatus getStatus() { return status; }
-        @Override public void activate() { this.status = Request.RequestStatus.ACTIVE; }
-        @Override public void reject() { this.status = Request.RequestStatus.REJECTED; }
-        @Override public UUID getRequesterId() { return UUID.randomUUID(); }
-        @Override public String getPurpose() { return purpose; }
-        @Override public Map<String, Object> getScope() { return scope; }
-        @Override public Map<String, Object> getEligibilityCriteria() { return criteria; }
-        @Override public BigDecimal getUnitPrice() { return BigDecimal.TEN; }
-        @Override public Integer getMaxParticipants() { return 100; }
-        @Override public Instant getDurationStart() { return Instant.now(); }
-        @Override public Instant getDurationEnd() { return Instant.now().plus(30, ChronoUnit.DAYS); }
+        
+        return requestRepository.save(saved);
     }
 }

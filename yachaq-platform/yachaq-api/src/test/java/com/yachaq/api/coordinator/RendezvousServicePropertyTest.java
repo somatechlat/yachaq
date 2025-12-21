@@ -1,12 +1,21 @@
 package com.yachaq.api.coordinator;
 
+import com.yachaq.api.YachaqApiApplication;
 import com.yachaq.api.audit.AuditService;
+import com.yachaq.api.config.TestcontainersConfiguration;
 import com.yachaq.api.coordinator.RendezvousService.*;
-import com.yachaq.core.domain.AuditReceipt;
+import com.yachaq.core.repository.AuditReceiptRepository;
 import net.jqwik.api.*;
 import net.jqwik.api.constraints.*;
+import net.jqwik.api.lifecycle.BeforeProperty;
+import net.jqwik.spring.JqwikSpringSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -18,38 +27,33 @@ import static org.assertj.core.api.Assertions.*;
 /**
  * Property-based tests for Coordinator Rendezvous and Signaling Service.
  * Requirement 323: Coordinator Rendezvous and Signaling.
+ * 
+ * VIBE CODING RULES COMPLIANCE:
+ * - Rule #1: NO MOCKS - Uses real PostgreSQL via Docker
+ * - Rule #4: REAL IMPLEMENTATIONS - All services are real Spring beans
+ * - Rule #7: REAL DATA & SERVERS - Tests against real Docker PostgreSQL
  */
+@JqwikSpringSupport
+@SpringBootTest(classes = YachaqApiApplication.class)
+@Import(TestcontainersConfiguration.class)
+@ActiveProfiles("test")
+@Transactional
 class RendezvousServicePropertyTest {
 
-    private TestAuditService auditService;
+    @Autowired
+    private AuditService auditService;
+
+    @Autowired
     private RendezvousService service;
+
+    @Autowired
+    private AuditReceiptRepository auditReceiptRepository;
 
     @BeforeEach
     void setUp() {
-        initializeService();
+        // Clean up for each test
+        auditReceiptRepository.deleteAll();
     }
-
-    private void initializeService() {
-        if (service == null) {
-            auditService = new TestAuditService();
-            service = new RendezvousService(auditService);
-        }
-    }
-
-    private RendezvousService getService() {
-        if (service == null) {
-            initializeService();
-        }
-        return service;
-    }
-
-    private TestAuditService getAuditService() {
-        if (auditService == null) {
-            initializeService();
-        }
-        return auditService;
-    }
-
 
     // ==================== Requirement 323.1: Ephemeral Session Tokens ====================
 
@@ -68,7 +72,7 @@ class RendezvousServicePropertyTest {
                 List.of("stun:stun.l.google.com:19302")
         );
 
-        SessionTokenResult result = getService().createSessionToken(request);
+        SessionTokenResult result = service.createSessionToken(request);
 
         assertThat(result.success()).isTrue();
         assertThat(result.sessionId()).isNotBlank();
@@ -92,10 +96,10 @@ class RendezvousServicePropertyTest {
                 List.of()
         );
 
-        SessionTokenResult createResult = getService().createSessionToken(request);
+        SessionTokenResult createResult = service.createSessionToken(request);
         assertThat(createResult.success()).isTrue();
 
-        TokenValidationResult validateResult = getService().validateToken(createResult.token());
+        TokenValidationResult validateResult = service.validateToken(createResult.token());
         
         assertThat(validateResult.valid()).isTrue();
         assertThat(validateResult.sessionId()).isEqualTo(createResult.sessionId());
@@ -105,13 +109,13 @@ class RendezvousServicePropertyTest {
     @Test
     @Label("323.1: Invalid tokens are rejected")
     void invalidTokensAreRejected() {
-        TokenValidationResult result1 = getService().validateToken(null);
+        TokenValidationResult result1 = service.validateToken(null);
         assertThat(result1.valid()).isFalse();
 
-        TokenValidationResult result2 = getService().validateToken("");
+        TokenValidationResult result2 = service.validateToken("");
         assertThat(result2.valid()).isFalse();
 
-        TokenValidationResult result3 = getService().validateToken("invalid-token-format");
+        TokenValidationResult result3 = service.validateToken("invalid-token-format");
         assertThat(result3.valid()).isFalse();
     }
 
@@ -129,14 +133,14 @@ class RendezvousServicePropertyTest {
                 "wss://relay.yachaq.io",
                 List.of()
         );
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
         assertThat(sessionResult.success()).isTrue();
 
         // Generate high-entropy ciphertext (simulated encrypted data)
         byte[] ciphertext = new byte[256];
         new SecureRandom().nextBytes(ciphertext);
 
-        RelayResult result = getService().relayMessage(
+        RelayResult result = service.relayMessage(
                 sessionResult.sessionId(),
                 ciphertext,
                 "ds-ephemeral"
@@ -159,14 +163,14 @@ class RendezvousServicePropertyTest {
                 "wss://relay.yachaq.io",
                 List.of()
         );
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
         assertThat(sessionResult.success()).isTrue();
 
         // Low entropy plaintext (repeated pattern)
         byte[] plaintext = "Hello World! This is plaintext data that should be rejected."
                 .repeat(10).getBytes();
 
-        RelayResult result = getService().relayMessage(
+        RelayResult result = service.relayMessage(
                 sessionResult.sessionId(),
                 plaintext,
                 "ds-ephemeral"
@@ -192,7 +196,7 @@ class RendezvousServicePropertyTest {
                 List.of()
         );
 
-        SessionTokenResult result = getService().createSessionToken(request);
+        SessionTokenResult result = service.createSessionToken(request);
 
         assertThat(result.success()).isTrue();
         // TTL should be capped at maximum (15 minutes)
@@ -213,7 +217,7 @@ class RendezvousServicePropertyTest {
                 List.of()
         );
 
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
         assertThat(sessionResult.success()).isTrue();
 
         // Wait for expiry
@@ -223,7 +227,7 @@ class RendezvousServicePropertyTest {
         byte[] ciphertext = new byte[256];
         new SecureRandom().nextBytes(ciphertext);
 
-        RelayResult result = getService().relayMessage(
+        RelayResult result = service.relayMessage(
                 sessionResult.sessionId(),
                 ciphertext,
                 "ds-ephemeral"
@@ -250,7 +254,7 @@ class RendezvousServicePropertyTest {
                     List.of()
             );
 
-            SessionTokenResult result = getService().createSessionToken(request);
+            SessionTokenResult result = service.createSessionToken(request);
             assertThat(result.success()).isTrue();
             sessionIds.add(result.sessionId());
         }
@@ -274,7 +278,7 @@ class RendezvousServicePropertyTest {
                 List.of()
         );
 
-        SessionTokenResult result = getService().createSessionToken(request);
+        SessionTokenResult result = service.createSessionToken(request);
 
         assertThat(result.success()).isTrue();
         assertThat(result.sessionId()).doesNotContain("ds-stable");
@@ -297,18 +301,18 @@ class RendezvousServicePropertyTest {
                 List.of()
         );
 
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
         assertThat(sessionResult.success()).isTrue();
 
         // Validate session exists
-        TokenValidationResult validateBefore = getService().validateToken(sessionResult.token());
+        TokenValidationResult validateBefore = service.validateToken(sessionResult.token());
         assertThat(validateBefore.valid()).isTrue();
 
         // Close session
-        getService().closeSession(sessionResult.sessionId());
+        service.closeSession(sessionResult.sessionId());
 
         // Session should no longer be valid
-        TokenValidationResult validateAfter = getService().validateToken(sessionResult.token());
+        TokenValidationResult validateAfter = service.validateToken(sessionResult.token());
         assertThat(validateAfter.valid()).isFalse();
     }
 
@@ -324,12 +328,12 @@ class RendezvousServicePropertyTest {
                 "wss://relay.yachaq.io",
                 List.of()
         );
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
 
         // Send message
         byte[] ciphertext = new byte[256];
         new SecureRandom().nextBytes(ciphertext);
-        RelayResult relayResult = getService().relayMessage(
+        RelayResult relayResult = service.relayMessage(
                 sessionResult.sessionId(),
                 ciphertext,
                 "ds-ephemeral"
@@ -337,14 +341,14 @@ class RendezvousServicePropertyTest {
         assertThat(relayResult.success()).isTrue();
 
         // Retrieve messages (should get the message)
-        List<RelayMessage> messages1 = getService().retrieveMessages(
+        List<RelayMessage> messages1 = service.retrieveMessages(
                 sessionResult.sessionId(),
                 "rq-ephemeral"
         );
         assertThat(messages1).hasSize(1);
 
         // Retrieve again (should be empty - single delivery)
-        List<RelayMessage> messages2 = getService().retrieveMessages(
+        List<RelayMessage> messages2 = service.retrieveMessages(
                 sessionResult.sessionId(),
                 "rq-ephemeral"
         );
@@ -364,20 +368,20 @@ class RendezvousServicePropertyTest {
                 "wss://relay.yachaq.io",
                 List.of()
         );
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
 
         // Get stats before expiry
-        SessionStats statsBefore = getService().getStats();
+        SessionStats statsBefore = service.getStats();
         assertThat(statsBefore.activeSessions()).isGreaterThanOrEqualTo(1);
 
         // Wait for expiry
         Thread.sleep(1500);
 
         // Run cleanup
-        getService().cleanupExpiredData();
+        service.cleanupExpiredData();
 
         // Session should be removed
-        TokenValidationResult validateResult = getService().validateToken(sessionResult.token());
+        TokenValidationResult validateResult = service.validateToken(sessionResult.token());
         assertThat(validateResult.valid()).isFalse();
     }
 
@@ -395,18 +399,18 @@ class RendezvousServicePropertyTest {
                 List.of()
         );
 
-        SessionTokenResult sessionResult = getService().createSessionToken(request);
+        SessionTokenResult sessionResult = service.createSessionToken(request);
         assertThat(sessionResult.success()).isTrue();
 
         // Initially PENDING
-        TokenValidationResult validateBefore = getService().validateToken(sessionResult.token());
+        TokenValidationResult validateBefore = service.validateToken(sessionResult.token());
         assertThat(validateBefore.status()).isEqualTo(SessionStatus.PENDING);
 
         // Mark as connected
-        getService().markSessionConnected(sessionResult.sessionId());
+        service.markSessionConnected(sessionResult.sessionId());
 
         // Now CONNECTED
-        TokenValidationResult validateAfter = getService().validateToken(sessionResult.token());
+        TokenValidationResult validateAfter = service.validateToken(sessionResult.token());
         assertThat(validateAfter.status()).isEqualTo(SessionStatus.CONNECTED);
     }
 
@@ -423,10 +427,10 @@ class RendezvousServicePropertyTest {
                     "wss://relay.yachaq.io",
                     List.of()
             );
-            getService().createSessionToken(request);
+            service.createSessionToken(request);
         }
 
-        SessionStats stats = getService().getStats();
+        SessionStats stats = service.getStats();
         assertThat(stats.activeSessions()).isGreaterThanOrEqualTo(5);
     }
 
@@ -436,7 +440,7 @@ class RendezvousServicePropertyTest {
         byte[] ciphertext = new byte[256];
         new SecureRandom().nextBytes(ciphertext);
 
-        RelayResult result = getService().relayMessage(
+        RelayResult result = service.relayMessage(
                 "non-existent-session-id",
                 ciphertext,
                 "ds-ephemeral"
@@ -444,41 +448,5 @@ class RendezvousServicePropertyTest {
 
         assertThat(result.success()).isFalse();
         assertThat(result.error()).contains("not found");
-    }
-
-    // ==================== Test Doubles ====================
-
-    /**
-     * Test implementation of AuditService for unit testing.
-     */
-    static class TestAuditService extends AuditService {
-        private final List<AuditReceipt> receipts = new ArrayList<>();
-
-        TestAuditService() {
-            super(null);
-        }
-
-        @Override
-        public AuditReceipt appendReceipt(
-                AuditReceipt.EventType eventType,
-                UUID actorId,
-                AuditReceipt.ActorType actorType,
-                UUID resourceId,
-                String resourceType,
-                String detailsHash) {
-            AuditReceipt receipt = AuditReceipt.create(
-                    eventType, actorId, actorType, resourceId, resourceType, detailsHash, "TEST"
-            );
-            receipts.add(receipt);
-            return receipt;
-        }
-
-        boolean hasReceiptOfType(AuditReceipt.EventType eventType) {
-            return receipts.stream().anyMatch(r -> r.getEventType() == eventType);
-        }
-
-        void clearReceipts() {
-            receipts.clear();
-        }
     }
 }

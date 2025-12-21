@@ -6610,3 +6610,203 @@ YACHAQ is a consent-first personal data and knowledge sovereignty infrastructure
 3. WHEN presenting options THEN the System SHALL not use manipulative design patterns
 4. WHEN showing warnings THEN the System SHALL use clear, non-alarming language
 5. WHEN reviewing designs THEN the System SHALL pass anti-dark-pattern audit checklist
+
+
+---
+
+## Section 12: Real Infrastructure Testing Workbench
+
+### Requirement 362: Testing Infrastructure Foundation
+
+**User Story:** As a QA Engineer, I want a comprehensive testing workbench with real infrastructure, so that all tests validate actual system behavior without mocks.
+
+#### Acceptance Criteria
+
+1. WHEN running tests THEN the System SHALL use real Docker infrastructure (PostgreSQL:55432, Redis:55379, Kafka:55092, Neo4j:55474/55687)
+2. WHEN starting test infrastructure THEN the System SHALL provide a single command to spin up all required services
+3. WHEN tests complete THEN the System SHALL support database cleanup without destroying schema
+4. WHEN infrastructure is unavailable THEN the System SHALL fail fast with clear error messages
+5. WHEN configuring tests THEN the System SHALL use application-test.yml and application-integration.yml profiles
+
+---
+
+### Requirement 363: Database Testing Infrastructure
+
+**User Story:** As a QA Engineer, I want real PostgreSQL testing, so that database operations are validated against production-equivalent infrastructure.
+
+#### Acceptance Criteria
+
+1. WHEN running database tests THEN the System SHALL use PostgreSQL 16 at localhost:55432
+2. WHEN tests start THEN the System SHALL run Flyway migrations automatically
+3. WHEN tests complete THEN the System SHALL support transaction rollback or truncation cleanup
+4. WHEN testing concurrent access THEN the System SHALL validate real connection pooling behavior
+5. WHEN testing migrations THEN the System SHALL validate schema changes against real PostgreSQL
+
+---
+
+### Requirement 364: Cache Testing Infrastructure
+
+**User Story:** As a QA Engineer, I want real Redis testing, so that caching behavior is validated against production-equivalent infrastructure.
+
+#### Acceptance Criteria
+
+1. WHEN running cache tests THEN the System SHALL use Redis 7 at localhost:55379
+2. WHEN testing rate limiting THEN the System SHALL validate real Redis-based rate limiting
+3. WHEN testing session management THEN the System SHALL validate real Redis session storage
+4. WHEN testing cache invalidation THEN the System SHALL validate real cache eviction behavior
+5. WHEN tests complete THEN the System SHALL support selective key cleanup
+
+---
+
+### Requirement 365: Message Queue Testing Infrastructure
+
+**User Story:** As a QA Engineer, I want real Kafka testing, so that event-driven behavior is validated against production-equivalent infrastructure.
+
+#### Acceptance Criteria
+
+1. WHEN running event tests THEN the System SHALL use Kafka at localhost:55092
+2. WHEN testing event publishing THEN the System SHALL validate real message delivery
+3. WHEN testing event consumption THEN the System SHALL validate real consumer group behavior
+4. WHEN testing event ordering THEN the System SHALL validate partition ordering guarantees
+5. WHEN tests complete THEN the System SHALL support topic cleanup
+
+---
+
+### Requirement 366: Graph Database Testing Infrastructure
+
+**User Story:** As a QA Engineer, I want real Neo4j testing, so that graph operations are validated against production-equivalent infrastructure.
+
+#### Acceptance Criteria
+
+1. WHEN running graph tests THEN the System SHALL use Neo4j 5 at localhost:55474/55687
+2. WHEN testing relationship queries THEN the System SHALL validate real Cypher execution
+3. WHEN testing graph traversals THEN the System SHALL validate real traversal performance
+4. WHEN testing graph constraints THEN the System SHALL validate real constraint enforcement
+5. WHEN tests complete THEN the System SHALL support node/relationship cleanup
+
+---
+
+### Requirement 367: Integration Test Orchestration
+
+**User Story:** As a QA Engineer, I want orchestrated integration tests, so that cross-service interactions are validated end-to-end.
+
+#### Acceptance Criteria
+
+1. WHEN running integration tests THEN the System SHALL start all required infrastructure services
+2. WHEN testing API flows THEN the System SHALL validate complete request-response cycles
+3. WHEN testing data flows THEN the System SHALL validate data persistence across services
+4. WHEN testing security flows THEN the System SHALL validate authentication and authorization
+5. WHEN integration tests fail THEN the System SHALL provide detailed failure context
+
+---
+
+### Requirement 368: Performance Testing Infrastructure
+
+**User Story:** As a Performance Engineer, I want performance testing capabilities, so that system behavior under load is validated.
+
+#### Acceptance Criteria
+
+1. WHEN running performance tests THEN the System SHALL measure response times against real infrastructure
+2. WHEN testing throughput THEN the System SHALL validate concurrent request handling
+3. WHEN testing database performance THEN the System SHALL measure query execution times
+4. WHEN testing cache performance THEN the System SHALL measure cache hit/miss ratios
+5. WHEN performance degrades THEN the System SHALL report metrics with thresholds
+
+---
+
+### Requirement 369: Security Testing Infrastructure
+
+**User Story:** As a Security Auditor, I want security testing capabilities, so that security controls are validated against real infrastructure.
+
+#### Acceptance Criteria
+
+1. WHEN running security tests THEN the System SHALL validate authentication against real services
+2. WHEN testing authorization THEN the System SHALL validate access control enforcement
+3. WHEN testing encryption THEN the System SHALL validate real encryption/decryption operations
+4. WHEN testing audit logging THEN the System SHALL validate real audit trail creation
+5. WHEN security tests fail THEN the System SHALL report security violations clearly
+
+---
+
+### Requirement 370: Test Data Management
+
+**User Story:** As a QA Engineer, I want test data management, so that tests have consistent and realistic data.
+
+#### Acceptance Criteria
+
+1. WHEN setting up tests THEN the System SHALL provide test data factories for all domain entities
+2. WHEN creating test data THEN the System SHALL use realistic but clearly marked test values
+3. WHEN tests complete THEN the System SHALL clean up test data without affecting other tests
+4. WHEN tests run in parallel THEN the System SHALL isolate test data per test execution
+5. WHEN test data is needed THEN the System SHALL support both minimal and comprehensive data sets
+
+---
+
+### Requirement 371: Test Environment Health Checks
+
+**User Story:** As a QA Engineer, I want environment health checks, so that test failures due to infrastructure issues are quickly identified.
+
+#### Acceptance Criteria
+
+1. WHEN tests start THEN the System SHALL verify all infrastructure services are healthy
+2. WHEN a service is unhealthy THEN the System SHALL report which service and why
+3. WHEN infrastructure recovers THEN the System SHALL allow test retry
+4. WHEN checking health THEN the System SHALL validate PostgreSQL, Redis, Kafka, and Neo4j connectivity
+5. WHEN health checks fail THEN the System SHALL provide remediation guidance
+
+---
+
+### Requirement 372: Blockchain Testing Infrastructure
+
+**User Story:** As a QA Engineer, I want blockchain testing capabilities, so that smart contract interactions are validated.
+
+#### Acceptance Criteria
+
+1. WHEN running blockchain tests THEN the System SHALL use a local blockchain node or testnet
+2. WHEN testing smart contracts THEN the System SHALL validate real contract deployment and execution
+3. WHEN testing consent registry THEN the System SHALL validate real on-chain consent records
+4. WHEN testing escrow contracts THEN the System SHALL validate real escrow operations
+5. WHEN blockchain tests complete THEN the System SHALL support state cleanup or reset
+
+---
+
+### Requirement 373: Property-Based Testing Infrastructure
+
+**User Story:** As a QA Engineer, I want property-based testing support, so that edge cases are discovered through generative testing.
+
+#### Acceptance Criteria
+
+1. WHEN running property tests THEN the System SHALL use jqwik framework with real infrastructure
+2. WHEN generating test cases THEN the System SHALL create realistic domain-specific generators
+3. WHEN property tests fail THEN the System SHALL report minimal failing examples
+4. WHEN testing invariants THEN the System SHALL validate business rules across generated inputs
+5. WHEN property tests run THEN the System SHALL persist shrinking database for reproducibility
+
+---
+
+### Requirement 374: Test Reporting and Metrics
+
+**User Story:** As a QA Engineer, I want comprehensive test reporting, so that test results and coverage are clearly visible.
+
+#### Acceptance Criteria
+
+1. WHEN tests complete THEN the System SHALL generate detailed test reports
+2. WHEN reporting coverage THEN the System SHALL show line, branch, and mutation coverage
+3. WHEN tests fail THEN the System SHALL provide stack traces and context
+4. WHEN tracking trends THEN the System SHALL support test result history
+5. WHEN viewing reports THEN the System SHALL show pass/fail rates by category
+
+---
+
+### Requirement 375: CI/CD Testing Integration
+
+**User Story:** As a DevOps Engineer, I want CI/CD testing integration, so that tests run automatically in pipelines.
+
+#### Acceptance Criteria
+
+1. WHEN running in CI THEN the System SHALL start infrastructure via docker-compose
+2. WHEN CI tests complete THEN the System SHALL report results in standard formats (JUnit XML)
+3. WHEN CI tests fail THEN the System SHALL fail the pipeline with clear error messages
+4. WHEN running in CI THEN the System SHALL support parallel test execution
+5. WHEN CI resources are limited THEN the System SHALL support test categorization for selective runs
+
