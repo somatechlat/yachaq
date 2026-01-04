@@ -20,13 +20,16 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * GraphQL Subscription Resolver.
- * 
- * Requirements: 28.7
- * - Real-time updates via subscriptions
- * 
- * Uses polling with change detection for real-time updates.
- * Polls database every 2 seconds and emits only when changes are detected.
+ * Implements the real-time subscription operations for the YACHAQ GraphQL API.
+ * This class maps fields in the GraphQL `Subscription` type to reactive streams (Flux)
+ * of events.
+ *
+ * <p>The current implementation uses a polling mechanism to simulate real-time updates.
+ * This approach is suitable for demonstrating functionality but may be replaced by a
+ * true event-driven architecture (e.g., using Kafka listeners) in a production environment.
+ * </p>
+ *
+ * <p>Requirements: 28.7 - Real-time updates via subscriptions</p>
  */
 @Controller
 public class SubscriptionResolver {
@@ -36,6 +39,14 @@ public class SubscriptionResolver {
     private final ConsentContractRepository consentContractRepository;
     private final AuditReceiptRepository auditReceiptRepository;
 
+    /**
+     * Constructs a new SubscriptionResolver with the necessary service and repository dependencies.
+     *
+     * @param settlementService Service for managing financial balances.
+     * @param ycTokenService Service for managing YC utility tokens.
+     * @param consentContractRepository Repository for accessing consent contracts.
+     * @param auditReceiptRepository Repository for accessing audit receipts.
+     */
     public SubscriptionResolver(
             SettlementService settlementService,
             YCTokenService ycTokenService,
@@ -48,8 +59,15 @@ public class SubscriptionResolver {
     }
 
     /**
-     * Subscribe to consent updates for a DS.
-     * Polls for new/updated consent contracts every 2 seconds.
+     * Resolves the 'consentUpdated' subscription. Pushes updates when new consent
+     * contracts are created for a Data Subject.
+     *
+     * <p><b>Implementation Note:</b> This subscription polls the database every 2 seconds.
+     * It detects a change by counting the number of contracts. An event is published only
+     * when the count increases, sending the newly detected contracts.</p>
+     *
+     * @param dsId The UUID of the Data Subject to monitor.
+     * @return A {@link Flux} that emits {@link ConsentContract} objects when new consents are detected.
      */
     @SubscriptionMapping
     public Flux<ConsentContract> consentUpdated(@Argument String dsId) {
@@ -81,8 +99,13 @@ public class SubscriptionResolver {
     }
 
     /**
-     * Subscribe to audit events for a DS.
-     * Polls for new audit receipts every 2 seconds.
+     * Resolves the 'auditEvent' subscription. Pushes new audit receipts for a Data Subject.
+     *
+     * <p><b>Implementation Note:</b> This subscription polls the database every 2 seconds.
+     * It publishes any audit receipts with a timestamp later than the last check.</p>
+     *
+     * @param dsId The UUID of the Data Subject (actor) to monitor.
+     * @return A {@link Flux} that emits new {@link AuditReceipt} objects as they are created.
      */
     @SubscriptionMapping
     public Flux<AuditReceipt> auditEvent(@Argument String dsId) {
@@ -107,8 +130,14 @@ public class SubscriptionResolver {
     }
 
     /**
-     * Subscribe to balance updates for a DS.
-     * Polls balance every 5 seconds with real data from settlement service.
+     * Resolves the 'balanceUpdated' subscription. Periodically pushes the current balance
+     * of a Data Subject.
+     *
+     * <p><b>Implementation Note:</b> This subscription polls the balance services every 5 seconds
+     * and emits the full, current balance on every interval, regardless of whether it has changed.</p>
+     *
+     * @param dsId The UUID of the Data Subject to monitor.
+     * @return A {@link Flux} that emits {@link QueryResolver.Balance} objects periodically.
      */
     @SubscriptionMapping
     public Flux<QueryResolver.Balance> balanceUpdated(@Argument String dsId) {

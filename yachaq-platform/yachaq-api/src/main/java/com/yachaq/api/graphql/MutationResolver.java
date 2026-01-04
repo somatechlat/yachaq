@@ -20,10 +20,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * GraphQL Mutation Resolver.
- * 
- * Requirements: 28.1
- * - Unified schema for mutations
+ * Implements the write operations (mutations) for the YACHAQ GraphQL API.
+ * This class maps the fields in the GraphQL `Mutation` type to the corresponding
+ * service-layer methods that change system state.
+ *
+ * <p>Requirements: 28.1 - Unified schema for mutations</p>
  */
 @Controller
 public class MutationResolver {
@@ -32,6 +33,13 @@ public class MutationResolver {
     private final PayoutService payoutService;
     private final QueryOrchestratorService queryService;
 
+    /**
+     * Constructs a new MutationResolver with the necessary service dependencies.
+     *
+     * @param consentService Service for creating and revoking consent contracts.
+     * @param payoutService Service for processing financial payouts.
+     * @param queryService Service for creating query plans and time capsules.
+     */
     public MutationResolver(
             ConsentService consentService,
             PayoutService payoutService,
@@ -41,7 +49,12 @@ public class MutationResolver {
         this.queryService = queryService;
     }
 
-    // Consent mutations
+    /**
+     * Resolves the 'grantConsent' mutation. Creates a new consent contract based on user input.
+     *
+     * @param input The input data for creating the consent contract.
+     * @return A {@link ConsentResult} summarizing the outcome of the operation.
+     */
     @MutationMapping
     public ConsentResult grantConsent(@Argument GrantConsentInput input) {
         ConsentService.ConsentRequest request = new ConsentService.ConsentRequest(
@@ -67,6 +80,13 @@ public class MutationResolver {
         );
     }
 
+    /**
+     * Resolves the 'revokeConsent' mutation. Revokes an existing, active consent contract.
+     *
+     * @param id The UUID of the consent contract to revoke.
+     * @param dsId The UUID of the Data Subject initiating the revocation, for authorization.
+     * @return A {@link RevocationResult} summarizing the outcome.
+     */
     @MutationMapping
     public RevocationResult revokeConsent(@Argument String id, @Argument String dsId) {
         ConsentService.RevocationResult result = consentService.revokeConsent(
@@ -82,7 +102,13 @@ public class MutationResolver {
         );
     }
 
-    // Payout mutations
+    /**
+     * Resolves the 'requestPayout' mutation. Initiates a financial payout for a Data Subject.
+     *
+     * @param input The input data for the payout request.
+     * @return A {@link PayoutResult} indicating the status of the request.
+     *         Handles insufficient balance errors gracefully by returning a FAILED status.
+     */
     @MutationMapping
     public PayoutResult requestPayout(@Argument PayoutInput input) {
         try {
@@ -111,7 +137,12 @@ public class MutationResolver {
         }
     }
 
-    // Query mutations
+    /**
+     * Resolves the 'createQueryPlan' mutation. Creates a new query plan from a consent contract.
+     *
+     * @param input The input data for creating the query plan.
+     * @return The newly created {@link QueryPlan}.
+     */
     @MutationMapping
     public QueryPlan createQueryPlan(@Argument CreateQueryPlanInput input) {
         return queryService.createQueryPlan(
@@ -123,6 +154,12 @@ public class MutationResolver {
         );
     }
 
+    /**
+     * Resolves the 'dispatchQuery' mutation. Dispatches a query to eligible devices based on a plan.
+     *
+     * @param input The input data for the dispatch operation.
+     * @return A {@link DispatchResult} summarizing the outcome of the dispatch.
+     */
     @MutationMapping
     public DispatchResult dispatchQuery(@Argument DispatchQueryInput input) {
         Set<UUID> deviceIds = input.eligibleDeviceIds().stream()
@@ -142,6 +179,12 @@ public class MutationResolver {
         );
     }
 
+    /**
+     * Resolves the 'createTimeCapsule' mutation. Creates a time capsule for deferred data delivery.
+     *
+     * @param input The input data for creating the time capsule.
+     * @return The newly created {@link TimeCapsule}.
+     */
     @MutationMapping
     public TimeCapsule createTimeCapsule(@Argument CreateCapsuleInput input) {
         return queryService.createTimeCapsule(
@@ -150,7 +193,17 @@ public class MutationResolver {
         );
     }
 
-    // Input records
+    /**
+     * DTO for the 'grantConsent' mutation input.
+     * @param dsId The Data Subject's unique identifier.
+     * @param requesterId The Data Requester's unique identifier.
+     * @param requestId The unique identifier of the original data request.
+     * @param scopeHash A cryptographic hash of the requested data scope.
+     * @param purposeHash A cryptographic hash of the stated purpose.
+     * @param durationStart The ISO 8601 timestamp for when the consent becomes active.
+     * @param durationEnd The ISO 8601 timestamp for when the consent expires.
+     * @param compensationAmount The financial compensation offered for this consent.
+     */
     public record GrantConsentInput(
         String dsId,
         String requesterId,
@@ -162,6 +215,13 @@ public class MutationResolver {
         double compensationAmount
     ) {}
 
+    /**
+     * DTO for the 'requestPayout' mutation input.
+     * @param dsId The Data Subject's unique identifier.
+     * @param amount The amount to be paid out.
+     * @param method The desired payout method (e.g., 'BANK_TRANSFER').
+     * @param destination The destination for the funds (e.g., account number).
+     */
     public record PayoutInput(
         String dsId,
         double amount,
@@ -169,6 +229,15 @@ public class MutationResolver {
         String destination
     ) {}
 
+    /**
+
+     * DTO for the 'createQueryPlan' mutation input.
+     * @param requesterId The Data Requester's unique identifier.
+     * @param consentContractId The ID of the consent contract authorizing this plan.
+     * @param scope A detailed description or definition of the data to be queried.
+     * @param transforms A list of transformations to be applied to the data.
+     * @param ttlMinutes The Time-To-Live for the query plan in minutes.
+     */
     public record CreateQueryPlanInput(
         String requesterId,
         String consentContractId,
@@ -177,18 +246,37 @@ public class MutationResolver {
         int ttlMinutes
     ) {}
 
+    /**
+     * DTO for the 'dispatchQuery' mutation input.
+     * @param planId The ID of the query plan to be executed.
+     * @param eligibleDeviceIds A list of specific device IDs to dispatch the query to.
+     * @param timeoutSeconds The maximum time in seconds to wait for a response from devices.
+     */
     public record DispatchQueryInput(
         String planId,
         List<String> eligibleDeviceIds,
         int timeoutSeconds
     ) {}
 
+    /**
+     * DTO for the 'createTimeCapsule' mutation input.
+     * @param queryId The ID of the query this capsule is associated with.
+     * @param ttlMinutes The Time-To-Live for the capsule in minutes.
+     */
     public record CreateCapsuleInput(
         String queryId,
         int ttlMinutes
     ) {}
 
-    // Result records
+    /**
+     * DTO representing the result of a 'grantConsent' mutation.
+     * @param contractId The ID of the newly created consent contract.
+     * @param dsId The ID of the Data Subject.
+     * @param requesterId The ID of the Data Requester.
+     * @param status The initial status of the new contract.
+     * @param auditReceiptId The ID of the audit receipt generated for this event.
+     * @param createdAt The timestamp of the consent creation.
+     */
     public record ConsentResult(
         UUID contractId,
         UUID dsId,
@@ -198,6 +286,13 @@ public class MutationResolver {
         String createdAt
     ) {}
 
+    /**
+     * DTO representing the result of a 'revokeConsent' mutation.
+     * @param contractId The ID of the contract that was revoked.
+     * @param revokedAt The timestamp of the revocation event.
+     * @param auditReceiptId The ID of the audit receipt generated for this event.
+     * @param tokensInvalidated The number of associated YC Tokens that were invalidated.
+     */
     public record RevocationResult(
         UUID contractId,
         String revokedAt,
@@ -205,6 +300,14 @@ public class MutationResolver {
         int tokensInvalidated
     ) {}
 
+    /**
+     * DTO representing the result of a 'requestPayout' mutation.
+     * @param payoutId The ID of the newly created payout instruction.
+     * @param dsId The ID of the Data Subject.
+     * @param amount The requested payout amount.
+     * @param status The initial status of the payout.
+     * @param message A message providing additional details about the result.
+     */
     public record PayoutResult(
         UUID payoutId,
         UUID dsId,
@@ -213,6 +316,12 @@ public class MutationResolver {
         String message
     ) {}
 
+    /**
+     * DTO representing the result of a 'dispatchQuery' mutation.
+     * @param queryId The unique identifier for this specific query execution.
+     * @param dispatchedCount The number of devices the query was successfully dispatched to.
+     * @param status The status of the dispatch operation.
+     */
     public record DispatchResult(
         UUID queryId,
         int dispatchedCount,

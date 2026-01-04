@@ -49,3 +49,9 @@ postgres_data/
 redis_data/
 kafka_data/
 neo4j_data/
+
+# Documentation
+docs/_build/
+yachaq-platform/target/site/
+yachaq-platform/yachaq-sdk/typescript/docs/
+artifacts/

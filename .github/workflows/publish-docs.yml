@@ -1,0 +1,82 @@
+name: Publish Documentation
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'yachaq-platform/yachaq-sdk/typescript/package-lock.json'
+
+      - name: Setup Java (JDK)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install TypeScript dependencies
+        run: npm install
+        working-directory: ./yachaq-platform/yachaq-sdk/typescript
+
+      - name: Build Javadoc
+        run: mvn -f yachaq-platform/pom.xml -B site
+        
+      - name: Build TypeDoc
+        run: npm run docs
+        working-directory: ./yachaq-platform/yachaq-sdk/typescript
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p artifacts
+          cp -r yachaq-platform/target/site/apidocs ./artifacts/java
+          cp -r yachaq-platform/yachaq-sdk/typescript/docs ./artifacts/ts
+          
+      - name: Create landing page
+        run: |
+          cat <<EOF > ./artifacts/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Yachaq Platform Documentation</title>
+              <style>
+                  body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f4f4f4; }
+                  .container { text-align: center; }
+                  h1 { margin-bottom: 2rem; }
+                  .links a { display: inline-block; padding: 1rem 2rem; margin: 0 1rem; border-radius: 8px; background-color: #007bff; color: white; text-decoration: none; font-size: 1.2rem; }
+                  .links a:hover { background-color: #0056b3; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>Yachaq Platform Documentation</h1>
+                  <div class="links">
+                      <a href="java/index.html">Java API (Javadoc)</a>
+                      <a href="ts/index.html">TypeScript SDK (TypeDoc)</a>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./artifacts

@@ -1,244 +1,490 @@
-# YACHAQ Platform GraphQL Schema
-# Requirements: 28.1, 28.7
+"""
+The official GraphQL schema for the YACHAQ Platform.
+It provides a comprehensive interface for data requesters, data subjects (users),
+and administrators to interact with the platform's core functionalities, including
+consent management, data querying, auditing, and financial operations.
+Requirements: 28.1, 28.7
+"""
 
+"""Defines all read-only operations available in the YACHAQ Platform."""
 type Query {
-    # Consent queries
+    # --- Consent Queries ---
+
+    """Retrieves a single consent contract by its unique identifier."""
     consent(id: ID!): ConsentContract
+    """
+    Fetches all consent contracts for a specific Data Subject (DS).
+    Can be filtered to return only currently active contracts.
+    """
     consents(dsId: ID!, activeOnly: Boolean = false): [ConsentContract!]!
     
-    # Audit queries
+    # --- Audit Queries ---
+
+    """Retrieves a single audit receipt by its unique identifier."""
     auditReceipt(id: ID!): AuditReceipt
+    """
+    Fetches a paginated list of audit receipts for a specific Data Subject (DS).
+    Results are ordered by timestamp in descending order.
+    """
     auditReceipts(dsId: ID!, page: Int = 0, size: Int = 20): AuditReceiptPage!
+    """
+    Retrieves all audit receipts related to a specific resource identifier,
+    such as a consent contract or a query plan.
+    """
     auditReceiptsByResource(resourceId: ID!): [AuditReceipt!]!
     
-    # Wallet queries
+    # --- Wallet and Financial Queries ---
+
+    """
+    Gets the current financial and YC Token balance for a Data Subject (DS).
+    """
     balance(dsId: ID!): Balance!
+    """
+    Retrieves the history of all payout instructions for a Data Subject (DS).
+    """
     payoutHistory(dsId: ID!): [PayoutInstruction!]!
+    """
+    Fetches the transaction history of YC Tokens for a Data Subject (DS).
+    """
     ycTransactions(dsId: ID!): [YCToken!]!
     
-    # Query orchestrator
+    # --- Query Orchestrator Queries ---
+
+    """Retrieves a specific query plan by its unique identifier."""
     queryPlan(id: ID!): QueryPlan
+    """Retrieves a specific time capsule by its unique identifier."""
     timeCapsule(id: ID!): TimeCapsule
     
-    # Matching
+    # --- Matching Engine Queries ---
+
+    """
+    Gets statistics from the matching engine for a given data request,
+    including cohort size and k-anonymity status.
+    """
     matchingStats(requestId: ID!): MatchingStats
 }
 
+"""Defines all write operations (state changes) available in the YACHAQ Platform."""
 type Mutation {
-    # Consent mutations
+    # --- Consent Mutations ---
+
+    """
+    Creates a new consent contract. This is a core operation initiated by a Data Subject
+    to formally grant access to their data under specific terms.
+    """
     grantConsent(input: GrantConsentInput!): ConsentResult!
+    """
+    Revokes an existing, active consent contract. This action is final and cannot be undone.
+    """
     revokeConsent(id: ID!, dsId: ID!): RevocationResult!
     
-    # Payout mutations
+    # --- Payout Mutations ---
+
+    """
+    Initiates a request for a financial payout from a Data Subject's available balance.
+    """
     requestPayout(input: PayoutInput!): PayoutResult!
     
-    # Query mutations
+    # --- Query Orchestrator Mutations ---
+
+    """
+    Creates a new query plan based on an existing consent contract. This is typically
+    performed by a data requester to define a specific data analysis operation.
+    """
     createQueryPlan(input: CreateQueryPlanInput!): QueryPlan!
+    """
+    Dispatches a query to a set of eligible devices based on a pre-defined query plan.
+    """
     dispatchQuery(input: DispatchQueryInput!): DispatchResult!
+    """
+    Creates a new time capsule for a query, defining a period during which data
+    can be collected or held before processing.
+    """
     createTimeCapsule(input: CreateCapsuleInput!): TimeCapsule!
 }
 
+"""Defines all real-time event subscriptions available in the YACHAQ Platform."""
 type Subscription {
-    # Real-time consent updates
+    """
+    Subscribes to real-time updates for a specific consent contract.
+    Fires when the contract's status or terms change.
+    """
     consentUpdated(dsId: ID!): ConsentContract!
     
-    # Real-time audit events
+    """
+    Subscribes to new audit events for a specific Data Subject (DS).
+    Provides a real-time stream of auditable actions.
+    """
     auditEvent(dsId: ID!): AuditReceipt!
     
-    # Real-time balance updates
+    """
+    Subscribes to real-time balance updates for a specific Data Subject (DS).
+    """
     balanceUpdated(dsId: ID!): Balance!
 }
 
-# Types
 
+# --- Object Types ---
+
+"""
+Represents a legally and technically binding agreement between a Data Subject (DS)
+and a Data Requester, defining the terms of data access.
+"""
 type ConsentContract {
+    "The unique identifier for the consent contract."
     id: ID!
+    "The unique identifier of the Data Subject (user) who owns the data."
     dsId: ID!
+    "The unique identifier of the Data Requester who is granted access."
     requesterId: ID!
+    "The unique identifier of the original data request this consent pertains to."
     requestId: ID!
+    "A cryptographic hash representing the specific data scope being consented to."
     scopeHash: String!
+    "A cryptographic hash representing the stated purpose for the data access."
     purposeHash: String!
+    "The ISO 8601 timestamp when the consent becomes active."
     durationStart: String!
+    "The ISO 8601 timestamp when the consent expires."
     durationEnd: String!
+    "The financial compensation amount agreed upon for this consent."
     compensationAmount: Float!
+    "The current status of the consent contract."
     status: ConsentStatus!
+    "The transaction hash from the blockchain anchoring this consent event."
     blockchainAnchorHash: String
+    "The ISO 8601 timestamp when the contract was created."
     createdAt: String!
+    "The ISO 8601 timestamp when the contract was revoked, if applicable."
     revokedAt: String
 }
 
+"""Enumerates the possible lifecycle statuses of a ConsentContract."""
 enum ConsentStatus {
+    "The consent is active and can be used for data access."
     ACTIVE
+    "The consent has been permanently revoked by the Data Subject."
     REVOKED
+    "The consent has passed its `durationEnd` and is no longer valid."
     EXPIRED
+    "The consent has been fulfilled and is now closed."
     COMPLETED
 }
 
+"""The result of a successful `grantConsent` mutation."""
 type ConsentResult {
+    "The ID of the newly created consent contract."
     contractId: ID!
+    "The ID of the Data Subject."
     dsId: ID!
+    "The ID of the Data Requester."
     requesterId: ID!
+    "The initial status of the new contract (should be ACTIVE)."
     status: ConsentStatus!
+    "The ID of the audit receipt generated for this event."
     auditReceiptId: ID!
+    "The timestamp of the consent creation."
     createdAt: String!
 }
 
+"""The result of a successful `revokeConsent` mutation."""
 type RevocationResult {
+    "The ID of the contract that was revoked."
     contractId: ID!
+    "The timestamp of the revocation event."
     revokedAt: String!
+    "The ID of the audit receipt generated for this event."
     auditReceiptId: ID!
+    "The number of associated YC Tokens that were invalidated as a result."
     tokensInvalidated: Int!
 }
 
+"""
+Represents a single, immutable entry in the platform's audit trail,
+recording a significant event.
+"""
 type AuditReceipt {
+    "The unique identifier for the audit receipt."
     id: ID!
+    "The type of event that occurred (e.g., 'CONSENT_GRANTED', 'QUERY_DISPATCHED')."
     eventType: String!
+    "The identifier of the entity that performed the action."
     actorId: ID!
+    "The type of the actor (e.g., 'DATA_SUBJECT', 'REQUESTER', 'SYSTEM')."
     actorType: String!
+    "The identifier of the primary resource involved in the event, if any."
     resourceId: ID
+    "The type of the primary resource (e.g., 'CONSENT_CONTRACT', 'QUERY_PLAN')."
     resourceType: String
+    "A human-readable description of the event."
     description: String
+    "A cryptographic hash linking this receipt to the previous receipt in the chain."
     previousHash: String
+    "The cryptographic hash of this receipt's contents, ensuring its integrity."
     currentHash: String!
+    "A Merkle proof for blockchain anchoring, if applicable."
     merkleProof: String
+    "The ISO 8601 timestamp when the event occurred."
     timestamp: String!
 }
 
+"""A container for a paginated list of AuditReceipt objects."""
 type AuditReceiptPage {
+    "The list of audit receipts for the current page."
     content: [AuditReceipt!]!
+    "The total number of audit receipts across all pages."
     totalElements: Int!
+    "The total number of pages available."
     totalPages: Int!
+    "The current page number (zero-based)."
     page: Int!
+    "The number of items per page."
     size: Int!
 }
 
+"""
+Represents the financial and token balances for a Data Subject.
+"""
 type Balance {
+    "The Data Subject's unique identifier."
     dsId: ID!
+    "The amount of money available for immediate payout."
     availableBalance: Float!
+    "The amount of money earned but not yet cleared for payout."
     pendingBalance: Float!
+    "The total amount of money ever earned by the Data Subject."
     totalEarned: Float!
+    "The total amount of money ever paid out to the Data Subject."
     totalPaidOut: Float!
+    "The currency for all financial values (e.g., 'USD')."
     currency: String!
+    "The current balance of YC Tokens."
     ycBalance: Float!
 }
 
+"""
+Represents a single payout instruction, from request to completion.
+"""
 type PayoutInstruction {
+    "The unique identifier for the payout."
     id: ID!
+    "The Data Subject who requested the payout."
     dsId: ID!
+    "The amount of the payout."
     amount: Float!
+    "The currency of the payout."
     currency: String!
+    "The method used for the payout."
     method: PayoutMethod!
+    "The current status of the payout process."
     status: PayoutStatus!
+    "The timestamp when the payout was requested."
     createdAt: String!
+    "The timestamp when the payout was completed, if applicable."
     completedAt: String
 }
 
+"""Enumerates the supported methods for financial payouts."""
 enum PayoutMethod {
+    "Standard bank transfer."
     BANK_TRANSFER
+    "Transfer to a mobile money account."
     MOBILE_MONEY
+    "Payout in a supported cryptocurrency."
     CRYPTO
+    "Payout via a local, country-specific provider."
     LOCAL_PROVIDER
 }
 
+"""Enumerates the possible lifecycle statuses of a PayoutInstruction."""
 enum PayoutStatus {
+    "The payout has been requested but not yet processed."
     PENDING
+    "The payout is currently being processed by the financial provider."
     PROCESSING
+    "The payout has been successfully completed."
     COMPLETED
+    "The payout failed due to an error."
     FAILED
+    "The payout was cancelled before completion."
     CANCELLED
 }
 
+"""The result of a `requestPayout` mutation."""
 type PayoutResult {
+    "The ID of the newly created payout instruction."
     payoutId: ID
+    "The ID of the Data Subject."
     dsId: ID!
+    "The requested payout amount."
     amount: Float!
+    "The initial status of the payout (should be PENDING or PROCESSING)."
     status: PayoutStatus!
+    "A message providing additional details about the result, especially on failure."
     message: String
 }
 
+"""
+Represents a transaction involving YC (Yachaq) Tokens, which are utility tokens
+used for internal accounting and governance.
+"""
 type YCToken {
+    "The unique identifier for the token transaction."
     id: ID!
+    "The Data Subject associated with the transaction."
     dsId: ID!
+    "The amount of tokens involved. Can be positive or negative."
     amount: Float!
+    "The type of operation (e.g., 'EARNED', 'SPENT', 'REVOKED')."
     operationType: String!
+    "A reference to another entity related to this transaction (e.g., ConsentContract ID)."
     referenceId: ID
+    "A human-readable description of the transaction."
     description: String
+    "The timestamp when the transaction occurred."
     createdAt: String!
 }
 
+"""
+A data structure created by a Data Requester that defines how a consented-to
+dataset should be queried and processed.
+"""
 type QueryPlan {
+    "The unique identifier for the query plan."
     id: ID!
+    "The ID of the original data request this plan is based on."
     requestId: ID!
+    "The ID of the consent contract authorizing this plan."
     consentContractId: ID!
+    "A hash of the data scope from the consent contract."
     scopeHash: String!
+    "A description of allowed transformations (e.g., anonymization techniques)."
     allowedTransforms: String
+    "The compensation offered for executing this query plan."
     compensation: Float!
+    "The Time-To-Live for this plan, as an ISO 8601 duration."
     ttl: String!
+    "The current status of the query plan (e.g., 'DRAFT', 'ACTIVE', 'EXECUTED')."
     status: String!
+    "The digital signature of the query plan, ensuring its authenticity."
     signature: String
+    "The timestamp when the plan was signed."
     signedAt: String
 }
 
+"""
+A mechanism for deferred data delivery, where data is collected and held
+for a specified period before being released to the requester.
+"""
 type TimeCapsule {
+    "The unique identifier for the time capsule."
     id: ID!
+    "The ID of the original data request."
     requestId: ID!
+    "The ID of the consent contract authorizing this capsule."
     consentContractId: ID!
+    "The Time-To-Live for the capsule before delivery, as an ISO 8601 duration."
     ttl: String!
+    "The status of the capsule (e.g., 'COLLECTING', 'SEALED', 'DELIVERED')."
     status: String!
+    "A random nonce used in the encryption process."
     nonce: String!
+    "The timestamp when the capsule was created."
     createdAt: String!
+    "The timestamp when the capsule was delivered, if applicable."
     deliveredAt: String
 }
 
+"""The result of a `dispatchQuery` mutation."""
 type DispatchResult {
+    "The unique identifier for this specific query execution."
     queryId: ID!
+    "The number of devices the query was successfully dispatched to."
     dispatchedCount: Int!
+    "The status of the dispatch operation (e.g., 'SUCCESS', 'PARTIAL_FAILURE')."
     status: String!
 }
 
+"""
+Provides statistics from the matching engine for a given data request,
+often used for assessing privacy metrics like k-anonymity.
+"""
 type MatchingStats {
+    "The ID of the data request being analyzed."
     requestId: ID!
+    "The total number of Data Subjects eligible for the request."
     totalEligible: Int!
+    "The number of Data Subjects who have consented and matched the query criteria."
     totalMatched: Int!
+    "The size of the resulting data cohort."
     cohortSize: Int!
+    "Indicates whether the specified k-anonymity threshold was met."
     kAnonymityMet: Boolean!
 }
 
-# Input types
 
+# --- Input Types ---
+
+"""Input for the `grantConsent` mutation."""
 input GrantConsentInput {
+    "The Data Subject's unique identifier."
     dsId: ID!
+    "The Data Requester's unique identifier."
     requesterId: ID!
+    "The unique identifier of the original data request."
     requestId: ID!
+    "A cryptographic hash of the requested data scope."
     scopeHash: String!
+    "A cryptographic hash of the stated purpose."
     purposeHash: String!
+    "The ISO 8601 timestamp for when the consent becomes active."
     durationStart: String!
+    "The ISO 8601 timestamp for when the consent expires."
     durationEnd: String!
+    "The financial compensation offered for this consent."
     compensationAmount: Float!
 }
 
+"""Input for the `requestPayout` mutation."""
 input PayoutInput {
+    "The Data Subject's unique identifier."
     dsId: ID!
+    "The amount to be paid out. Must be less than or equal to the available balance."
     amount: Float!
+    "The desired payout method."
     method: PayoutMethod!
+    "The destination for the funds (e.g., bank account number, mobile money ID, crypto address)."
     destination: String!
 }
 
+"""Input for the `createQueryPlan` mutation."""
 input CreateQueryPlanInput {
+    "The Data Requester's unique identifier."
     requesterId: ID!
+    "The ID of the consent contract authorizing this plan."
     consentContractId: ID!
+    "A detailed description or definition of the data to be queried."
     scope: String!
+    "A list of transformations to be applied to the data."
     transforms: [String!]
+    "The Time-To-Live for the query plan in minutes."
     ttlMinutes: Int!
 }
 
+"""Input for the `dispatchQuery` mutation."""
 input DispatchQueryInput {
+    "The ID of the query plan to be executed."
     planId: ID!
+    "A list of specific device IDs to dispatch the query to."
     eligibleDeviceIds: [ID!]!
+    "The maximum time in seconds to wait for a response from devices."
     timeoutSeconds: Int!
 }
 
+"""Input for the `createTimeCapsule` mutation."""
 input CreateCapsuleInput {
+    "The ID of the query this capsule is associated with."
     queryId: ID!
+    "The Time-To-Live for the capsule in minutes before it can be 'opened'."
     ttlMinutes: Int!
 }

@@ -184,6 +184,27 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>aggregate</id>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                        <phase>site</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doclint>none</doclint> <!-- Lenient mode for now, can be tightened later -->
+                    <show>protected</show> <!-- Show protected members -->
+                    <reportOutputDirectory>${project.build.directory}/site</reportOutputDirectory>
+                    <destDir>apidocs</destDir>
+                    <source>${java.version}</source>
+                </configuration>
+            </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
